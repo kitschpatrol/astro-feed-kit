@@ -47,13 +47,22 @@ describe('defineFeedConfig', () => {
 		expect(resolved.includeContent).toBe(false)
 	})
 
-	it('populates feedLinks from siteLink when missing', () => {
+	it('derives feedLinks from siteLink and feeds', () => {
 		const resolved = defineFeedConfig(baseInput)
 		expect(resolved.feedOptions.feedLinks).toEqual({
 			atom: 'https://example.com/atom.xml',
 			json: 'https://example.com/feed.json',
 			rss: 'https://example.com/rss.xml',
 		})
+	})
+
+	it('reflects custom feeds filenames in derived feedLinks', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			feeds: { rss: 'feed.xml' },
+		})
+		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/feed.xml')
+		expect(resolved.feedOptions.feed).toBe('https://example.com/feed.xml')
 	})
 
 	it('handles trailing slash on siteLink without producing double slashes', () => {
@@ -64,28 +73,20 @@ describe('defineFeedConfig', () => {
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/rss.xml')
 	})
 
-	it('preserves user-supplied feedLinks', () => {
-		const resolved = defineFeedConfig({
-			...baseInput,
-			feedOptions: {
-				...baseInput.feedOptions,
-				feedLinks: { rss: 'https://elsewhere.com/feed.rss' },
-			},
-		})
-		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://elsewhere.com/feed.rss')
-		// Gaps still get auto-filled
-		expect(resolved.feedOptions.feedLinks?.atom).toBe('https://example.com/atom.xml')
-	})
-
-	it('defaults id and feed when missing, derived from siteLink', () => {
+	it('defaults id from siteLink and derives feed from siteLink + feeds.rss', () => {
 		const resolved = defineFeedConfig(baseInput)
 		expect(resolved.feedOptions.id).toBe('https://example.com')
 		expect(resolved.feedOptions.feed).toBe('https://example.com/rss.xml')
 	})
 
-	it('defaults generator to "feed-kit"', () => {
-		const resolved = defineFeedConfig(baseInput)
-		expect(resolved.feedOptions.generator).toBe('feed-kit')
+	it('omits feedLinks, feed, and id when siteLink is absent', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			feedOptions: { description: 'd', title: 't' },
+		})
+		expect(resolved.feedOptions.feedLinks).toBeUndefined()
+		expect(resolved.feedOptions.feed).toBeUndefined()
+		expect(resolved.feedOptions.id).toBeUndefined()
 	})
 
 	it('merges DEFAULT_KNOWN_RENDERERS with user-supplied list, deduped', () => {
