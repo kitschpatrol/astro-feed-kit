@@ -1,0 +1,89 @@
+---
+type Props = {
+	title: string
+}
+
+const { title } = Astro.props
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/'
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width" name="viewport" />
+		<title>{title}</title>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				font-family:
+					system-ui,
+					-apple-system,
+					sans-serif;
+				color: light-dark(#1a1a1a, #e5e5e5);
+				color-scheme: light dark;
+				background: light-dark(#fafafa, #111);
+			}
+
+			nav {
+				display: flex;
+				gap: 0.5rem;
+				padding: 1rem 2rem;
+				border-bottom: 1px solid light-dark(#ddd, #333);
+			}
+
+			nav a {
+				padding: 0.4rem 0.8rem;
+				border: 1px solid light-dark(#ddd, #333);
+				border-radius: 4px;
+				font-size: 0.85rem;
+				color: light-dark(#555, #999);
+				text-decoration: none;
+			}
+
+			nav a:hover {
+				border-color: light-dark(#999, #666);
+				color: light-dark(#000, #fff);
+			}
+
+			nav a[aria-current='page'] {
+				border-color: light-dark(#999, #666);
+				color: light-dark(#000, #fff);
+				background: light-dark(#e8e8e8, #333);
+			}
+
+			main {
+				max-width: 960px;
+				padding: 2rem;
+			}
+
+			h1 {
+				margin-bottom: 0.5rem;
+				font-size: 1.5rem;
+			}
+
+			h2 {
+				margin: 2rem 0 0.75rem;
+				padding-bottom: 0.5rem;
+				border-bottom: 1px solid light-dark(#ddd, #333);
+				font-size: 1.1rem;
+			}
+		</style>
+	</head>
+	<body>
+		<nav>
+			<a aria-current={currentPath === '/' ? 'page' : undefined} href="/">Astro</a>
+			<a aria-current={currentPath === '/mdx' ? 'page' : undefined} href="/mdx">MDX</a>
+			<a aria-current={currentPath === '/markdown' ? 'page' : undefined} href="/markdown"
+				>Markdown</a
+			>
+		</nav>
+		<main>
+			<slot />
+		</main>
+	</body>
+</html>

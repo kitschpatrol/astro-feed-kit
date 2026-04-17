@@ -1,0 +1,33 @@
+---
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout title="astro-html-kit playground">
+	<h1>astro-html-kit playground</h1>
+
+	<h2>Strip Link Suffix</h2>
+	<p>These <code>.html</code> suffixes should be stripped by the middleware:</p>
+	<ul>
+		<li><a href="/about.html">Internal .html link</a></li>
+		<li><a href="/blog/post.html">Nested .html link</a></li>
+		<li><a href="/already-clean">Already clean link (unchanged)</a></li>
+	</ul>
+
+	<h2>Add Link Prefix</h2>
+	<p>These <code>/_astro/</code> paths should get the base URL prefix:</p>
+	<ul>
+		<li><a href="/_astro/style.css">Astro asset link</a></li>
+		<li><img alt="Astro asset" src="/_astro/image.png" /></li>
+		<li><a href="/not-astro/other.css">Non-astro path (unchanged)</a></li>
+	</ul>
+
+	<h2>External link annotation</h2>
+	<p>These external link paths should get a data annotation:</p>
+	<ul>
+		<li><a href="https://www.example.com">Example.com</a></li>
+	</ul>
+
+	<h2>Void element handling</h2>
+	<hr />
+	<br />
+</Layout>

@@ -1,0 +1,39 @@
+{
+	"name": "astro-feed-kit-playground",
+	"private": true,
+	"description": "Astro project playground to evaluate astro-feed-kit.",
+	"license": "MIT",
+	"author": {
+		"name": "Eric Mika",
+		"email": "eric@ericmika.com",
+		"url": "https://ericmika.com"
+	},
+	"sideEffects": false,
+	"type": "module",
+	"scripts": {
+		"astro": "astro",
+		"build": "astro build",
+		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"dev": "poptab && astro dev --open",
+		"preview": "poptab && astro preview --open"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.8",
+		"@astrojs/mdx": "^5.0.3",
+		"@types/node": "~25.5.2",
+		"astro": "^6.1.7",
+		"astro-feed-kit": "link:..",
+		"poptab": "^1.1.0",
+		"sharp": "^0.34.5",
+		"shx": "^0.4.0"
+	},
+	"engines": {
+		"node": ">=20.19.0"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": ">=22.18.0"
+		}
+	}
+}

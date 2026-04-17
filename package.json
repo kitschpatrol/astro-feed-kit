@@ -1,0 +1,76 @@
+{
+	"name": "astro-feed-kit",
+	"version": "0.0.0",
+	"description": "Astro integration for full-content feeds.",
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"astro-component",
+		"rss",
+		"atom",
+		"mdx",
+		"json-feed"
+	],
+	"homepage": "https://github.com/kitschpatrol/astro-feed-kit",
+	"bugs": "https://github.com/kitschpatrol/astro-feed-kit/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/kitschpatrol/astro-feed-kit.git"
+	},
+	"license": "MIT",
+	"author": {
+		"name": "Eric Mika",
+		"email": "eric@ericmika.com",
+		"url": "https://ericmika.com"
+	},
+	"sideEffects": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"files": [
+		"src"
+	],
+	"scripts": {
+		"build": "pnpm astro sync && pnpm run -r astro sync",
+		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"dev": "pnpm run play",
+		"fix": "ksc fix",
+		"lint": "ksc lint && pnpm run -r --include-workspace-root astro check",
+		"play": "pnpm -C playground run dev",
+		"play-starlight": "pnpm -C playground-starlight run dev",
+		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') && pnpm publish",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.8",
+		"@kitschpatrol/shared-config": "^7.4.1",
+		"@types/node": "~24.12.2",
+		"astro": "^6.1.7",
+		"bumpp": "^11.0.1",
+		"defuddle": "^0.17.0",
+		"feed": "^5.2.0",
+		"linkedom": "^0.18.12",
+		"node-addon-api": "^8.7.0",
+		"node-gyp": "^12.2.0",
+		"remark-html": "^16.0.1",
+		"remark-parse": "^11.0.0",
+		"shx": "^0.4.0",
+		"typescript": "~6.0.3",
+		"unified": "^11.0.5",
+		"vitest": "^4.1.4"
+	},
+	"peerDependencies": {
+		"astro": "^6.0.0"
+	},
+	"packageManager": "pnpm@10.33.0",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": ">=24.12.0"
+		}
+	}
+}

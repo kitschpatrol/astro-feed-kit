@@ -1,0 +1,33 @@
+---
+title: Middleware Tests
+description: Test page for astro-html-kit middleware transforms.
+---
+
+## External Link Annotation
+
+External links in Starlight markdown content should get the `external-link` class and `rel="noopener noreferrer"`:
+
+- [Astro docs](https://astro.build) — external, should be annotated
+- [GitHub](https://github.com) — external, should be annotated
+- [MDN](https://developer.mozilla.org) — external, should be annotated
+- [Internal link](/middleware) — internal, should be unchanged
+
+Inspect the external links in DevTools to verify `data-external-link` and `rel="noopener noreferrer"`.
+
+## Strip Link Suffix
+
+These `.html` suffixes should be stripped:
+
+- [Page with .html suffix](/middleware.html)
+- [Nested .html link](/components/picture.html)
+- [Already clean](/middleware) — should be unchanged
+
+## Add Link Prefix
+
+Asset paths starting with `/_astro/` should get the base URL prefix:
+
+<a href="/_astro/style.css">Astro asset link</a>
+
+## Custom Handler
+
+A custom `defineDomMiddleware` handler adds `data-processed="true"` to the `<body>` element. Inspect `<body>` in DevTools to verify.

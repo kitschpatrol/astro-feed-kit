@@ -1,0 +1,25 @@
+# Git Ignore
+# Also used by CSpell, Stylelint, and ESLint
+
+# @kitschpatrol/repo-config boilerplate
+!.env.example
+.astro/
+.DS_Store
+.env
+.env.*
+.eslint-config-inspector
+.pnpm-store/
+.svelte-kit/
+{tmp,temp}/
+**/*.min.js
+/scratch/
+bower_components/
+build/
+coverage/
+dist/
+node_modules/
+vendor/
+
+# Customizations
+.claude/
+/.playwright-cli

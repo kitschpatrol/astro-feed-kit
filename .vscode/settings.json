@@ -1,0 +1,70 @@
+{
+	"[astro]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[gitignore]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[ruby]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[shellscript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[svelte]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"cSpell.enabled": true,
+	"cSpell.workspaceRootPath": ".",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.ts": "explicit",
+		"source.fixAll.eslint": "explicit",
+		"source.fixAll.stylelint": "explicit",
+		"source.organizeImports": "never"
+	},
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.formatOnSave": true,
+	"eslint.enable": true,
+	"eslint.runtime": "node",
+	"eslint.useFlatConfig": true,
+	"eslint.validate": [
+		"astro",
+		"html",
+		"javascript",
+		"javascriptreact",
+		"json",
+		"json5",
+		"jsonc",
+		"markdown",
+		"mdx",
+		"svelte",
+		"toml",
+		"typescript",
+		"typescriptreact",
+		"xml",
+		"yaml"
+	],
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.expand": false,
+	"explorer.fileNesting.patterns": {
+		".env": ".env.*, .template.env",
+		"*.js": "${basename}.ts.map, ${basename}.js.map, ${basename}.d.ts, ${basename}.d.ts.map, ${basename}.d.js.map",
+		"*.ts": "${basename}.ts.map, ${basename}.d.ts, ${basename}.d.ts.map",
+		"package.json": ".*.cjs, .*.cts, .*.js, .*.json, .*.json5, .*.jsonc, .*.mjs, .*.mts, .*.toml, .*.ts, .*.yaml, .*.yml, .*attributes, .*ignore, .*rc, .node-version, *config.cjs, *config.cts, *config.js, *config.json, *config.json5, *config.jsonc, *config.mjs, *config.mts, *config.toml, *config.ts, *config.yaml, *config.yml, tsconfig.*.json, lerna.json, netlify.toml, package-lock.json, pnpm*, skills-lock.json, turbo.json, vercel.json, workspace*, wrangler.toml, wrangler.json, wrangler.jsonc, yarn.lock, yarn*",
+		"readme.md": "authors*, backers*, changelog*, citation*, code_of_conduct*, contributing*, contributors*, copying*, credits*, governance*, history*, license*, maintainers*, release_notes*, security*, sponsors*"
+	},
+	"prettier.documentSelectors": [
+		"**/.eslintignore",
+		"**/.node-version",
+		"**/.npmrc",
+		"**/.prettierignore",
+		"**/*.astro",
+		"**/*.rb",
+		"**/*.svelte"
+	],
+	"prettier.enable": true,
+	"stylelint.enable": true,
+	"stylelint.validate": ["css", "html", "svelte", "astro"],
+	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
+	"js/ts.tsdk.path": "node_modules/typescript/lib"
+}
