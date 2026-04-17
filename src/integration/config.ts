@@ -51,14 +51,17 @@ export type ItemResolvers = {
 }
 
 /**
- * Per-collection configuration. The `link` function is required because
- * there is no portable default — different sites route content entries to
- * different URL shapes. Resolvers declared here take precedence over the
- * top-level `resolvers` field on `FeedConfigInput`.
+ * Per-collection configuration. `link` is optional — when omitted, items are
+ * linked at `{siteUrl}/{collection}/{entry.id}/`, matching Astro's default
+ * content collection routing convention. Provide an explicit `link` to
+ * customize per-entry URLs (e.g. flat slugs, dated paths, custom permalinks).
+ *
+ * Resolvers declared here take precedence over the top-level `resolvers`
+ * field on `FeedConfigInput`.
  */
 export type CollectionConfig = {
 	key: string
-	link: (entry: CollectionEntry<CollectionKey>, context: LinkContext) => string
+	link?: (entry: CollectionEntry<CollectionKey>, context: LinkContext) => string
 	resolvers?: ItemResolvers
 }
 
@@ -147,7 +150,7 @@ export type FeedConfig = {
 const DEFAULT_FEEDS: FeedFilenames = {
 	atom: 'atom.xml',
 	json: 'feed.json',
-	rss: 'feed.xml',
+	rss: 'rss.xml',
 }
 
 const DEFAULT_LIMIT = 25

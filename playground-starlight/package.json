@@ -1,7 +1,7 @@
 {
-	"name": "astro-html-kit-playground-starlight",
+	"name": "astro-feed-kit-playground-starlight",
 	"private": true,
-	"description": "Astro Starlight project playground to evaluate astro-html-kit.",
+	"description": "Astro Starlight project playground to evaluate astro-feed-kit.",
 	"license": "MIT",
 	"author": {
 		"name": "Eric Mika",
@@ -23,7 +23,7 @@
 		"@astrojs/starlight": "^0.38.3",
 		"@types/node": "~25.5.2",
 		"astro": "^6.1.7",
-		"astro-html-kit": "link:..",
+		"astro-feed-kit": "link:..",
 		"poptab": "^1.1.0",
 		"sharp": "^0.34.5",
 		"shx": "^0.4.0"

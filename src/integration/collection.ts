@@ -1,5 +1,4 @@
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import { getCollection } from 'astro:content'
 import type { FeedConfig } from './config'
 import { FeedEligibleEntrySchema } from './schemas'
 
@@ -34,16 +33,15 @@ function defaultSort(a: CollectionEntry<CollectionKey>, b: CollectionEntry<Colle
 
 /**
  * Load every entry from the collections listed in `config.contentCollections`
- * and produce a flat, sorted list of feed-eligible entries. Applies four
- * gates, in order:
+ * and produce a flat, sorted list of feed-eligible entries. Applies four gates,
+ * in order:
  *
- * 1. Filter — default excludes `draft: true` and `encrypt: true`; composed
- *    with any user-supplied `config.filter`.
- * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is
- *    enforced on each surviving entry's `data`. Throws with collection and
- *    id context on failure; silent exclusion would mask real problems.
- * 3. Sort — default is `date` descending; replaced by `config.sort` when
- *    provided.
+ * 1. Filter — default excludes `draft: true` and `encrypt: true`; composed with
+ *    any user-supplied `config.filter`.
+ * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is enforced
+ *    on each surviving entry's `data`. Throws with collection and id context on
+ *    failure; silent exclusion would mask real problems.
+ * 3. Sort — default is `date` descending; replaced by `config.sort` when provided.
  * 4. Limit — keep at most `config.limit` entries after sort (default 25).
  */
 export async function getFeedContent(
@@ -58,6 +56,11 @@ export async function getFeedContent(
 		if (userFilter !== undefined && !userFilter(entry)) return false
 		return true
 	}
+
+	// `astro:content` is a Vite virtual module — dynamically imported here so
+	// the package's barrel can be safely loaded from `astro.config.ts` (where
+	// Vite hasn't booted yet) without crashing.
+	const { getCollection } = await import('astro:content')
 
 	const allEntries: Array<CollectionEntry<CollectionKey>> = []
 	for (const collectionConfig of config.contentCollections) {

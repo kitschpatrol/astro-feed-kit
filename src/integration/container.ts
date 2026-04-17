@@ -1,5 +1,4 @@
 import type { AstroRenderer } from 'astro'
-import { loadRenderers } from 'astro:container'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 
 /**
@@ -30,6 +29,10 @@ export async function createContainer(knownRenderers: string[]): Promise<AstroCo
 		}
 	}
 
+	// `astro:container` is a Vite virtual module — loaded dynamically so the
+	// barrel can be safely imported from `astro.config.ts` (where Vite hasn't
+	// resolved virtual modules yet) without crashing.
+	const { loadRenderers } = await import('astro:container')
 	const renderers = await loadRenderers(containerRenderers)
 	return AstroContainer.create({ renderers })
 }

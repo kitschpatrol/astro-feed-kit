@@ -1,5 +1,5 @@
+import type * as AstroContent from 'astro:content'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import { render } from 'astro:content'
 import { Feed } from 'feed'
 import type { FeedConfig, LinkContext, ResolverContext } from './config'
 import type { Item } from './schemas'
@@ -8,6 +8,14 @@ import { createContainer } from './container'
 import { applyResolvers } from './item-map'
 import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
+
+/**
+ * `astro:content` is a Vite virtual module — it only resolves inside code
+ * that runs through Vite's module graph. We dynamically import it at call
+ * time so the package's barrel can be loaded from `astro.config.ts` (where
+ * Vite is not yet active) without crashing.
+ */
+type AstroContentRender = typeof AstroContent.render
 
 function findCollectionConfig(config: FeedConfig, collectionKey: string) {
 	const match = config.contentCollections.find((c) => c.key === collectionKey)
@@ -43,6 +51,7 @@ async function buildItem(
 	config: FeedConfig,
 	container: Awaited<ReturnType<typeof createContainer>> | undefined,
 	siteUrl: string,
+	render: AstroContentRender | undefined,
 ): Promise<Item> {
 	const collectionConfig = findCollectionConfig(config, entry.collection)
 
@@ -50,10 +59,15 @@ async function buildItem(
 		collection: entry.collection,
 		siteUrl,
 	}
-	const link = collectionConfig.link(entry, linkContext)
+	const link =
+		collectionConfig.link?.(entry, linkContext) ??
+		new URL(
+			`${entry.collection}/${entry.id}/`,
+			siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
+		).toString()
 
 	let renderedHtml = ''
-	if (container !== undefined) {
+	if (container !== undefined && render !== undefined) {
 		const { Content } = await render(entry)
 		const rawHtml = await container.renderToString(Content)
 		renderedHtml = await sanitizeHtml(rawHtml, link, config.excerptBoundary)
@@ -105,12 +119,19 @@ export async function generateFeed(config: FeedConfig): Promise<Feed> {
 	const entries = await getFeedContent(config)
 	// Skip the AstroContainer (and its renderer dynamic-imports) entirely
 	// when no item will carry rendered content. Resolvers that depend on
-	// `context.renderedHtml` will see an empty string in this mode.
+	// `context.renderedHtml` will see an empty string in this mode. The
+	// `astro:content` virtual module is also only needed for content
+	// rendering, so we lazy-load it here.
 	const container = config.includeContent ? await createContainer(config.knownRenderers) : undefined
+	let render: AstroContentRender | undefined
+	if (config.includeContent) {
+		const astroContent = await import('astro:content')
+		render = astroContent.render
+	}
 
 	const itemDates: Date[] = []
 	for (const entry of entries) {
-		const item = await buildItem(entry, config, container, siteUrl)
+		const item = await buildItem(entry, config, container, siteUrl, render)
 		// The `feed` library's `Item` type uses strict-optional fields
 		// (`field?: T`), while the schema-inferred `Item` shape carries
 		// `field?: T | undefined`. Semantically identical; cast at the

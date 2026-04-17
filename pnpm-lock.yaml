@@ -7,6 +7,25 @@ settings:
 importers:
 
   .:
+    dependencies:
+      defuddle:
+        specifier: ^0.17.0
+        version: 0.17.0
+      feed:
+        specifier: ^5.2.0
+        version: 5.2.0
+      linkedom:
+        specifier: ^0.18.12
+        version: 0.18.12
+      remark-html:
+        specifier: ^16.0.1
+        version: 16.0.1
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
     devDependencies:
       '@astrojs/check':
         specifier: ^0.9.8
@@ -23,36 +42,21 @@ importers:
       bumpp:
         specifier: ^11.0.1
         version: 11.0.1
-      defuddle:
-        specifier: ^0.17.0
-        version: 0.17.0
-      feed:
-        specifier: ^5.2.0
-        version: 5.2.0
-      linkedom:
-        specifier: ^0.18.12
-        version: 0.18.12
       node-addon-api:
         specifier: ^8.7.0
         version: 8.7.0
       node-gyp:
         specifier: ^12.2.0
         version: 12.2.0
-      remark-html:
-        specifier: ^16.0.1
-        version: 16.0.1
-      remark-parse:
-        specifier: ^11.0.0
-        version: 11.0.0
       shx:
         specifier: ^0.4.0
         version: 0.4.0
       typescript:
-        specifier: ~6.0.2
+        specifier: ~6.0.3
         version: 6.0.3
-      unified:
-        specifier: ^11.0.5
-        version: 11.0.5
+      vite:
+        specifier: ^7.3.2
+        version: 7.3.2(@types/node@24.12.2)(jiti@2.6.1)(yaml@2.8.3)
       vitest:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@24.12.2)(vite@7.3.2(@types/node@24.12.2)(jiti@2.6.1)(yaml@2.8.3))
@@ -101,7 +105,7 @@ importers:
       astro:
         specifier: ^6.1.7
         version: 6.1.7(@types/node@25.5.2)(jiti@2.6.1)(rollup@4.60.1)(typescript@6.0.3)(yaml@2.8.3)
-      astro-html-kit:
+      astro-feed-kit:
         specifier: link:..
         version: link:..
       poptab:

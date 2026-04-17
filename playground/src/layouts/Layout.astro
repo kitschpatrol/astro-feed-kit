@@ -1,4 +1,6 @@
 ---
+import FeedKit from 'astro-feed-kit/components/FeedKit.astro'
+
 type Props = {
 	title: string
 }
@@ -12,6 +14,7 @@ const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/'
 		<meta charset="utf-8" />
 		<meta content="width=device-width" name="viewport" />
 		<title>{title}</title>
+		<FeedKit />
 		<style>
 			* {
 				box-sizing: border-box;
@@ -76,11 +79,10 @@ const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/'
 	</head>
 	<body>
 		<nav>
-			<a aria-current={currentPath === '/' ? 'page' : undefined} href="/">Astro</a>
-			<a aria-current={currentPath === '/mdx' ? 'page' : undefined} href="/mdx">MDX</a>
-			<a aria-current={currentPath === '/markdown' ? 'page' : undefined} href="/markdown"
-				>Markdown</a
-			>
+			<a aria-current={currentPath === '/' ? 'page' : undefined} href="/">Index</a>
+			<a href="/rss.xml">RSS</a>
+			<a href="/atom.xml">Atom</a>
+			<a href="/feed.json">JSON</a>
 		</nav>
 		<main>
 			<slot />

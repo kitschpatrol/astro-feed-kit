@@ -26,7 +26,8 @@
 	"sideEffects": true,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./components/FeedKit.astro": "./src/components/FeedKit.astro"
 	},
 	"files": [
 		"src"
@@ -42,22 +43,25 @@
 		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') && pnpm publish",
 		"test": "vitest run"
 	},
+	"dependencies": {
+		"defuddle": "^0.17.0",
+		"feed": "^5.2.0",
+		"linkedom": "^0.18.12",
+		"remark-html": "^16.0.1",
+		"remark-parse": "^11.0.0",
+		"unified": "^11.0.5"
+	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.8",
 		"@kitschpatrol/shared-config": "^7.4.1",
 		"@types/node": "~24.12.2",
 		"astro": "^6.1.7",
 		"bumpp": "^11.0.1",
-		"defuddle": "^0.17.0",
-		"feed": "^5.2.0",
-		"linkedom": "^0.18.12",
 		"node-addon-api": "^8.7.0",
 		"node-gyp": "^12.2.0",
-		"remark-html": "^16.0.1",
-		"remark-parse": "^11.0.0",
 		"shx": "^0.4.0",
 		"typescript": "~6.0.3",
-		"unified": "^11.0.5",
+		"vite": "^7.3.2",
 		"vitest": "^4.1.4"
 	},
 	"peerDependencies": {

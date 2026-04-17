@@ -5,6 +5,7 @@
 		// vs. the extended @kitschpatrol/typescript-config
 		"target": "ESNext",
 		"jsx": "preserve",
+		"jsxImportSource": "astro",
 		"allowUnusedLabels": false,
 		"exactOptionalPropertyTypes": true,
 		"noImplicitOverride": true,
@@ -18,7 +19,8 @@
 	"include": [
 		"**/*",
 		"**/**.*",
-		".astro/types.d.ts",
+		// Exclude or face issues with empty content collection types...
+		// ".astro/types.d.ts",
 		"./playground-starlight/.astro/types.d.ts",
 		"./playground/.astro/types.d.ts"
 	],
