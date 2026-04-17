@@ -89,6 +89,38 @@ describe('defineFeedConfig', () => {
 		expect(resolved.feedOptions.id).toBeUndefined()
 	})
 
+	it('disables a feed format when feeds[kind] is false', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			feeds: { atom: false, rss: 'feed.xml' },
+		})
+		expect(resolved.feeds.atom).toBeUndefined()
+		expect(resolved.feeds.rss).toBe('feed.xml')
+		expect(resolved.feeds.json).toBe('feed.json')
+		expect(resolved.feedOptions.feedLinks?.atom).toBeUndefined()
+		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/feed.xml')
+		expect(resolved.feedOptions.feedLinks?.json).toBe('https://example.com/feed.json')
+	})
+
+	it('treats feeds[kind] === true as the default filename', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			feeds: { atom: true, rss: true },
+		})
+		expect(resolved.feeds.atom).toBe('atom.xml')
+		expect(resolved.feeds.rss).toBe('rss.xml')
+	})
+
+	it('omits feedOptions.feed when rss is disabled', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			feeds: { rss: false },
+		})
+		expect(resolved.feeds.rss).toBeUndefined()
+		expect(resolved.feedOptions.feed).toBeUndefined()
+		expect(resolved.feedOptions.feedLinks?.rss).toBeUndefined()
+	})
+
 	it('merges DEFAULT_KNOWN_RENDERERS with user-supplied list, deduped', () => {
 		const resolved = defineFeedConfig({
 			...baseInput,
@@ -112,5 +144,11 @@ describe('getFeedPath', () => {
 	it('reflects user-supplied feed filenames', () => {
 		const resolved = defineFeedConfig({ ...baseInput, feeds: { rss: 'feed.rss' } })
 		expect(getFeedPath(resolved, 'rss')).toBe('/feed.rss')
+	})
+
+	it('returns undefined for disabled formats', () => {
+		const resolved = defineFeedConfig({ ...baseInput, feeds: { json: false } })
+		expect(getFeedPath(resolved, 'json')).toBeUndefined()
+		expect(getFeedPath(resolved, 'rss')).toBe('/rss.xml')
 	})
 })

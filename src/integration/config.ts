@@ -91,6 +91,17 @@ export type FeedFilenames = {
 }
 
 /**
+ * Input shape for `feeds`. Each format accepts:
+ *
+ * - `undefined` / omitted — enabled with the default filename.
+ * - `true` — enabled with the default filename (explicit form).
+ * - `false` — disabled; no route is injected and no `<link rel="alternate">` is
+ *   emitted for this format.
+ * - A string — enabled with a custom filename (relative to the site root).
+ */
+export type FeedsInput = Partial<Record<keyof FeedFilenames, boolean | string>>
+
+/**
  * Input shape accepted by `defineFeedConfig`. Every field except
  * `contentCollections` and `feedOptions` has a default.
  */
@@ -118,7 +129,13 @@ export type FeedConfigInput = {
 	 * issue — we'll add a first-class option rather than reopen this foot-gun.
 	 */
 	feedOptions: Omit<FeedOptions, 'feed' | 'feedLinks'>
-	feeds?: Partial<FeedFilenames>
+	/**
+	 * Per-format filename overrides and enable/disable flags. Pass `false` to
+	 * disable a format entirely (no route injected, no `<link>` tag rendered,
+	 * no entry in `feedOptions.feedLinks`). Pass `true` or omit to enable with
+	 * the default filename. Pass a string to enable with a custom filename.
+	 */
+	feeds?: FeedsInput
 	filter?: (entry: CollectionEntry<CollectionKey>) => boolean
 	/**
 	 * Whether to populate each item's full HTML `content` field. Defaults to
@@ -171,7 +188,12 @@ export type FeedConfig = {
 	contentCollections: CollectionConfig[]
 	excerptBoundary: ExcerptBoundary | false
 	feedOptions: FeedOptions
-	feeds: FeedFilenames
+	/**
+	 * Resolved filenames for enabled formats. A format absent from this record
+	 * has been disabled (`feeds: { [kind]: false }`) — no route is injected
+	 * and no `<link>` is emitted for it.
+	 */
+	feeds: Partial<FeedFilenames>
 	filter?: ((entry: CollectionEntry<CollectionKey>) => boolean) | undefined
 	includeContent: boolean
 	knownRenderers: string[]
@@ -203,6 +225,22 @@ const DEFAULT_FEEDS: FeedFilenames = {
 	atom: 'atom.xml',
 	json: 'feed.json',
 	rss: 'rss.xml',
+}
+
+const FEED_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<keyof FeedFilenames>
+
+/**
+ * Resolve one user-supplied `feeds` entry. `undefined` and `true` enable the
+ * format with its default filename; `false` disables it; a string enables it
+ * with the custom filename.
+ */
+function resolveFeedEntry(
+	value: boolean | string | undefined,
+	defaultName: string,
+): string | undefined {
+	if (value === false) return undefined
+	if (value === undefined || value === true) return defaultName
+	return value
 }
 
 const DEFAULT_LIMIT = 25
@@ -240,7 +278,11 @@ function joinUrl(base: string, path: string): string {
  * the set of eligible items.
  */
 export function defineFeedConfig(input: FeedConfigInput): FeedConfig {
-	const feeds: FeedFilenames = { ...DEFAULT_FEEDS, ...input.feeds }
+	const feeds: Partial<FeedFilenames> = {}
+	for (const kind of FEED_KINDS) {
+		const filename = resolveFeedEntry(input.feeds?.[kind], DEFAULT_FEEDS[kind])
+		if (filename !== undefined) feeds[kind] = filename
+	}
 	const knownRenderers = [...new Set([...DEFAULT_KNOWN_RENDERERS, ...(input.knownRenderers ?? [])])]
 
 	const { feedOptions: inputFeedOptions } = input
@@ -250,15 +292,17 @@ export function defineFeedConfig(input: FeedConfigInput): FeedConfig {
 	// `feed` or `feedLinks`), then layer in derived fields only when we
 	// have the `siteLink` they depend on. This avoids writing `undefined`
 	// into strict-optional library properties under
-	// `exactOptionalPropertyTypes`.
+	// `exactOptionalPropertyTypes`. `feedLinks` and the rss self-reference
+	// `feed` only include enabled formats.
 	const feedOptions: FeedOptions = { ...inputFeedOptions }
 	if (siteLink !== undefined) {
-		feedOptions.feedLinks = {
-			atom: joinUrl(siteLink, feeds.atom),
-			json: joinUrl(siteLink, feeds.json),
-			rss: joinUrl(siteLink, feeds.rss),
+		const feedLinks: Partial<FeedFilenames> = {}
+		for (const kind of FEED_KINDS) {
+			const filename = feeds[kind]
+			if (filename !== undefined) feedLinks[kind] = joinUrl(siteLink, filename)
 		}
-		feedOptions.feed = joinUrl(siteLink, feeds.rss)
+		feedOptions.feedLinks = feedLinks
+		if (feeds.rss !== undefined) feedOptions.feed = joinUrl(siteLink, feeds.rss)
 		feedOptions.id ??= siteLink
 	}
 
@@ -279,9 +323,12 @@ export function defineFeedConfig(input: FeedConfigInput): FeedConfig {
 
 /**
  * Return the configured filename for a given feed format, with a leading slash.
- * Useful when manually placing routes that must line up with the filenames
- * declared in `feeds`.
+ * Returns `undefined` when the format has been disabled (`feeds: { [kind]:
+ * false }`). Useful when manually placing routes that must line up with the
+ * filenames declared in `feeds`, and for guarding `<link rel="alternate">`
+ * tags on disabled formats.
  */
-export function getFeedPath(config: FeedConfig, kind: keyof FeedFilenames): string {
-	return `/${config.feeds[kind]}`
+export function getFeedPath(config: FeedConfig, kind: keyof FeedFilenames): string | undefined {
+	const filename = config.feeds[kind]
+	return filename === undefined ? undefined : `/${filename}`
 }

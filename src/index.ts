@@ -12,6 +12,7 @@ export type {
 	FeedConfig,
 	FeedConfigInput,
 	FeedFilenames,
+	FeedsInput,
 	ItemResolvers,
 	LinkContext,
 	ResolverContext,
@@ -91,18 +92,26 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 					},
 				})
 
+				const mountedPaths: string[] = []
 				for (const kind of ENDPOINT_KINDS) {
+					const filename = resolved.feeds[kind]
+					if (filename === undefined) continue
 					const entrypoint = fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url))
 					injectRoute({
 						entrypoint,
-						pattern: `/${resolved.feeds[kind]}`,
+						pattern: `/${filename}`,
 						prerender: true,
 					})
+					mountedPaths.push(`/${filename}`)
 				}
 
-				logger.info(
-					`mounted feed endpoints: /${resolved.feeds.rss}, /${resolved.feeds.atom}, /${resolved.feeds.json}`,
-				)
+				if (mountedPaths.length === 0) {
+					logger.warn(
+						'all feed formats are disabled in `feeds` — no routes injected and <FeedKit /> will render nothing',
+					)
+				} else {
+					logger.info(`mounted feed endpoints: ${mountedPaths.join(', ')}`)
+				}
 			},
 		},
 		name: 'astro-feed-kit',

@@ -1,5 +1,6 @@
 ---
 import config from 'virtual:astro-feed-kit/config'
+import { getFeedPath } from '../integration/config'
 
 type Props = {
 	/**
@@ -11,21 +12,16 @@ type Props = {
 
 const { title } = Astro.props
 const feedTitle = title ?? config.feedOptions.title
-const { feedLinks } = config.feedOptions
+
+const rssPath = getFeedPath(config, 'rss')
+const atomPath = getFeedPath(config, 'atom')
+const jsonPath = getFeedPath(config, 'json')
 ---
 
+{rssPath && <link href={rssPath} rel="alternate" title={feedTitle} type="application/rss+xml" />}
+{atomPath && <link href={atomPath} rel="alternate" title={feedTitle} type="application/atom+xml" />}
 {
-	feedLinks?.rss && (
-		<link href={feedLinks.rss} rel="alternate" title={feedTitle} type="application/rss+xml" />
-	)
-}
-{
-	feedLinks?.atom && (
-		<link href={feedLinks.atom} rel="alternate" title={feedTitle} type="application/atom+xml" />
-	)
-}
-{
-	feedLinks?.json && (
-		<link href={feedLinks.json} rel="alternate" title={feedTitle} type="application/feed+json" />
+	jsonPath && (
+		<link href={jsonPath} rel="alternate" title={feedTitle} type="application/feed+json" />
 	)
 }
