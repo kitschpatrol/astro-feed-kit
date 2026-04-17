@@ -4,27 +4,17 @@ import type { FeedOptions } from 'feed'
 import type { Item } from './schemas'
 
 /**
- * Context passed to a `Source.link` function. Available before the entry is
- * rendered, because the derived link is used both as the item's final URL and
- * as the permalink fed to the HTML sanitizer.
- */
-export type LinkContext = {
-	collection: string
-	siteUrl: string
-}
-
-/**
- * Context passed to a `Source.resolveItem` function. Extends `LinkContext` with
- * the sanitized, rendered HTML of the entry — available because resolvers run
- * after the content container has produced output.
+ * Arguments passed to an `ItemResolver`. The resolver runs before the entry is
+ * rendered, so `renderedHtml` is intentionally not exposed — the pipeline fills
+ * `content` from the sanitized render after the resolver returns.
  *
- * - `collection` — the name of the originating collection.
- * - `siteUrl` — the feed's link, used as the base for URL composition.
- * - `renderedHtml` — the entry's sanitized HTML, or `''` when `includeContent:
- *   false` was set (the render pipeline is skipped entirely in that mode).
+ * `C` narrows `entry` to the collection named on the enclosing `Source`. When
+ * used without a type argument — as internal consumers do — `entry` widens to
+ * `CollectionEntry<CollectionKey>`.
  */
-export type ItemResolverContext = LinkContext & {
-	renderedHtml: string
+export type ItemResolverArgs<C extends CollectionKey = CollectionKey> = {
+	entry: CollectionEntry<C>
+	siteUrl: string
 }
 
 /**
@@ -36,17 +26,22 @@ export type ItemResolverContext = LinkContext & {
  * baseline — they do **not** clobber it. This is the single extension point for
  * customizing feed items from collection data.
  *
- * The built-in baseline fills these fields from the entry:
+ * The built-in baseline fills these fields:
  *
  * - `title` — `entry.data.title`
  * - `date`, `published` — `entry.data.date`
  * - `description` — `entry.data.description`
  * - `category` — `entry.data.tags` mapped to `{name, term}`
- * - `content` — `context.renderedHtml` (empty when `includeContent: false`)
+ * - `link` — `{siteUrl}/{entry.collection}/{entry.id}/` (override to customize
+ *   per-entry URLs)
+ *
+ * `content` is **not** set by the resolver — it's filled in by the pipeline
+ * from the sanitized rendered HTML after the resolver runs. Return an explicit
+ * `content: string` to override it; the override wins unless `includeContent:
+ * false` is set (which drops content entirely).
  */
-export type ItemResolver = (
-	entry: CollectionEntry<CollectionKey>,
-	context: ItemResolverContext,
+export type ItemResolver<C extends CollectionKey = CollectionKey> = (
+	args: ItemResolverArgs<C>,
 ) => Partial<Item>
 
 /**
@@ -54,34 +49,38 @@ export type ItemResolver = (
  * items. Every field other than `collection` is optional and narrows behavior
  * for that source only.
  *
- * The `link` default (when omitted) is `{siteUrl}/{collection}/{entry.id}/`,
- * matching Astro's default content collection routing. Provide `link` to
- * customize per-entry URLs (e.g. flat slugs, dated paths, custom permalinks).
+ * `C` is the collection name. Supplying a literal (e.g. `Source<'posts'>`)
+ * narrows `filter`, `sort`, and `resolveItem`'s `entry` to that collection's
+ * `CollectionEntry`. `SourceInput` drives this inference automatically from the
+ * `collection` discriminant, so most users never spell `C` out.
  */
-export type Source = {
-	collection: string
+export type Source<C extends CollectionKey = CollectionKey> = {
+	collection: C
 	/** Narrows eligible entries. Composed with the built-in draft/encrypt gate. */
-	filter?: (entry: CollectionEntry<CollectionKey>) => boolean
+	filter?: (entry: CollectionEntry<C>) => boolean
 	/** Caps this source before items are merged across sources. */
 	limit?: number
-	/** Builds the per-entry URL for items from this source. */
-	link?: (entry: CollectionEntry<CollectionKey>, context: LinkContext) => string
 	/**
 	 * Overrides or augments built-in item defaults for this source. Called per
 	 * entry; returns a `Partial<Item>` — omitted fields fall through to the
-	 * baseline resolver. See `ItemResolver` for the baseline field list.
+	 * baseline resolver. See `ItemResolver` for the baseline field list,
+	 * including the `link` default of `{siteUrl}/{collection}/{entry.id}/`.
 	 */
-	resolveItem?: ItemResolver
+	resolveItem?: ItemResolver<C>
 	/** Sorts this source's entries before the per-source `limit` is applied. */
-	sort?: (a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number
+	sort?: (a: CollectionEntry<C>, b: CollectionEntry<C>) => number
 }
 
 /**
  * User-facing source shape. A bare string is shorthand for `{ collection:
  * string }` with default behavior — convenient when no per-source customization
  * is needed.
+ *
+ * The object form is a distributed union over `CollectionKey`, so writing `{
+ * collection: 'posts', resolveItem({ entry }) { ... } }` narrows `entry` to
+ * `CollectionEntry<'posts'>` via the `collection` discriminant.
  */
-export type SourceInput = Source | string
+export type SourceInput = string | { [C in CollectionKey]: Source<C> }[CollectionKey]
 
 /**
  * Where to stop when deriving an item's rendered HTML. Applied to the sanitized
@@ -157,8 +156,8 @@ export type FeedKitConfig = {
 	 * Whether to populate each item's full HTML `content` field. Defaults to
 	 * `true`. Set to `false` to publish a metadata-only feed (title, description,
 	 * date, link, categories) — matches `@astrojs/rss`'s default. Skips the
-	 * AstroContainer render and sanitize pipeline entirely, so resolvers reading
-	 * `context.renderedHtml` will see an empty string.
+	 * AstroContainer render and sanitize pipeline entirely; any `content`
+	 * returned from a `resolveItem` is dropped in this mode.
 	 */
 	includeContent?: boolean
 	/**
@@ -284,9 +283,22 @@ export function defaultItemSort(a: Item, b: Item): number {
 /**
  * Normalize one entry in the user-facing `sources` array. A bare string is
  * expanded to `{ collection: string }`; objects pass through unchanged.
+ *
+ * The object branch widens a narrow `Source<'posts'>` into
+ * `Source<CollectionKey>`. TS won't accept this directly because the function
+ * members (`filter`, `sort`, `resolveItem`) are contravariant in their entry
+ * parameter, but the pipeline only ever invokes those functions with entries
+ * from the matching collection, so the widening is sound at runtime.
  */
 function normalizeSource(input: SourceInput): Source {
-	if (typeof input === 'string') return { collection: input }
+	if (typeof input === 'string') {
+		// `CollectionKey` is a compile-time union of declared collection names;
+		// at runtime it's just `string`. Mirrors the cast at the `getCollection`
+		// call site in `collection.ts`.
+		// eslint-disable-next-line ts/no-unsafe-type-assertion
+		return { collection: input as CollectionKey }
+	}
+
 	return input
 }
 

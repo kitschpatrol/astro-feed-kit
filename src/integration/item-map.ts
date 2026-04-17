@@ -1,5 +1,4 @@
-import type { CollectionEntry, CollectionKey } from 'astro:content'
-import type { ItemResolver, ItemResolverContext } from './config'
+import type { ItemResolver, ItemResolverArgs } from './config'
 import type { Item } from './schemas'
 
 function slugify(text: string): string {
@@ -45,26 +44,29 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
 
 /**
  * Built-in item defaults. Produces a `Partial<Item>` from the common Astro
- * frontmatter conventions (`title`, `date`, `description`, `tags`) plus the
- * sanitized rendered HTML from `context`. This is the baseline that a user's
- * `Source.resolveItem` overlay merges on top of.
+ * frontmatter conventions (`title`, `date`, `description`, `tags`) plus a
+ * default `link` derived from `siteUrl`, `entry.collection`, and `entry.id`.
+ * This is the baseline that a user's `Source.resolveItem` overlay merges on
+ * top of.
  *
  * The category default intentionally emits `{name, term}` only — no `domain`.
  * Sites that want per-tag URLs in the feed should spread
- * `tagCategoryResolver({basePath})(entry, context)` inside their own
+ * `tagCategoryResolver({basePath})({entry, siteUrl})` inside their own
  * `Source.resolveItem`.
+ *
+ * `content` is deliberately not set here — the pipeline fills it from the
+ * sanitized rendered HTML after all resolvers have run.
  */
-export function defaultItemResolver(
-	entry: CollectionEntry<CollectionKey>,
-	context: ItemResolverContext,
-): Partial<Item> {
+export function defaultItemResolver({ entry, siteUrl }: ItemResolverArgs): Partial<Item> {
 	const { data } = entry
 	const title = asString(readField(data, 'title'))
 	const date = asDate(readField(data, 'date'))
 	const description = asString(readField(data, 'description'))
 	const category = categoryFromTags(readField(data, 'tags'))
 
-	const result: Partial<Item> = {}
+	const result: Partial<Item> = {
+		link: new URL(`${entry.collection}/${entry.id}/`, ensureTrailingSlash(siteUrl)).toString(),
+	}
 	if (title !== undefined) result.title = title
 	if (date !== undefined) {
 		result.date = date
@@ -72,7 +74,6 @@ export function defaultItemResolver(
 	}
 	if (description !== undefined) result.description = description
 	if (category !== undefined) result.category = category
-	if (context.renderedHtml !== '') result.content = context.renderedHtml
 	return result
 }
 
@@ -100,37 +101,33 @@ function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Pa
  * skipping keys the user's resolver returned as `undefined`.
  */
 export function resolveItemFields(
-	entry: CollectionEntry<CollectionKey>,
-	context: ItemResolverContext,
+	args: ItemResolverArgs,
 	sourceResolveItem?: ItemResolver,
 ): Partial<Item> {
-	const base = defaultItemResolver(entry, context)
+	const base = defaultItemResolver(args)
 	if (sourceResolveItem === undefined) return base
-	return mergeSkippingUndefined(base, sourceResolveItem(entry, context))
+	return mergeSkippingUndefined(base, sourceResolveItem(args))
 }
 
 /**
  * Build a helper that produces a `{category}` partial with per-tag URLs
- * derived from `basePath` and the site URL in the resolver context. Spread
- * the result inside a source's `resolveItem`:
+ * derived from `basePath` and `siteUrl`. Spread the result inside a source's
+ * `resolveItem`:
  *
  * @example
- * 	resolveItem: (entry, context) => ({
- * 		...tagCategoryResolver({ basePath: '/tags/' })(entry, context),
+ * 	resolveItem: (args) => ({
+ * 		...tagCategoryResolver({ basePath: '/tags/' })(args),
  * 	})
  */
 export function tagCategoryResolver(options: {
 	basePath: string
-}): (
-	entry: CollectionEntry<CollectionKey>,
-	context: ItemResolverContext,
-) => { category?: Item['category'] } {
-	return (entry, context) => {
+}): (args: ItemResolverArgs) => { category?: Item['category'] } {
+	return ({ entry, siteUrl }) => {
 		const value = readField(entry.data, 'tags')
 		if (!Array.isArray(value)) return {}
 		const tags = value.filter((tag): tag is string => typeof tag === 'string')
 		if (tags.length === 0) return {}
-		const base = new URL(options.basePath, ensureTrailingSlash(context.siteUrl)).toString()
+		const base = new URL(options.basePath, ensureTrailingSlash(siteUrl)).toString()
 		return {
 			category: tags.map((name) => {
 				const term = slugify(name)

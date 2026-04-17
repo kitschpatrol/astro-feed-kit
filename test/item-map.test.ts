@@ -1,18 +1,14 @@
 /* eslint-disable ts/no-unsafe-type-assertion */
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import { describe, expect, it } from 'vitest'
-import type { ItemResolverContext } from '../src/integration/config'
+import type { ItemResolverArgs } from '../src/integration/config'
 import {
 	defaultItemResolver,
 	resolveItemFields,
 	tagCategoryResolver,
 } from '../src/integration/item-map'
 
-const CONTEXT: ItemResolverContext = {
-	collection: 'posts',
-	renderedHtml: '<p>html</p>',
-	siteUrl: 'https://example.com/',
-}
+const SITE_URL = 'https://example.com/'
 
 function makeEntry(data: Record<string, unknown>): CollectionEntry<CollectionKey> {
 	return {
@@ -23,28 +19,43 @@ function makeEntry(data: Record<string, unknown>): CollectionEntry<CollectionKey
 	} as unknown as CollectionEntry<CollectionKey>
 }
 
+function makeArgs(data: Record<string, unknown>): ItemResolverArgs {
+	return { entry: makeEntry(data), siteUrl: SITE_URL }
+}
+
 describe('defaultItemResolver', () => {
-	it('populates title/date/description/content from common frontmatter fields', () => {
-		const entry = makeEntry({
-			date: new Date('2026-04-10T00:00:00Z'),
-			description: 'Lead-in text.',
-			title: 'Hello',
-		})
-		const partial = defaultItemResolver(entry, CONTEXT)
+	it('populates title/date/description from common frontmatter fields', () => {
+		const partial = defaultItemResolver(
+			makeArgs({
+				date: new Date('2026-04-10T00:00:00Z'),
+				description: 'Lead-in text.',
+				title: 'Hello',
+			}),
+		)
 		expect(partial.title).toBe('Hello')
 		expect(partial.description).toBe('Lead-in text.')
 		expect(partial.date).toEqual(new Date('2026-04-10T00:00:00Z'))
 		expect(partial.published).toEqual(new Date('2026-04-10T00:00:00Z'))
-		expect(partial.content).toBe('<p>html</p>')
+	})
+
+	it('derives the default link from siteUrl, collection, and entry.id', () => {
+		const partial = defaultItemResolver(makeArgs({ date: new Date(), title: 'T' }))
+		expect(partial.link).toBe('https://example.com/posts/sample/')
+	})
+
+	it('never sets content — the pipeline fills it from the sanitized render', () => {
+		const partial = defaultItemResolver(makeArgs({ date: new Date(), title: 'T' }))
+		expect('content' in partial).toBe(false)
 	})
 
 	it('maps tags to {name, term} categories using default slug form', () => {
-		const entry = makeEntry({
-			date: new Date(),
-			tags: ['Hello World', 'foo bar'],
-			title: 'T',
-		})
-		const partial = defaultItemResolver(entry, CONTEXT)
+		const partial = defaultItemResolver(
+			makeArgs({
+				date: new Date(),
+				tags: ['Hello World', 'foo bar'],
+				title: 'T',
+			}),
+		)
 		expect(partial.category).toEqual([
 			{ name: 'Hello World', term: 'hello-world' },
 			{ name: 'foo bar', term: 'foo-bar' },
@@ -52,77 +63,81 @@ describe('defaultItemResolver', () => {
 	})
 
 	it('omits category when tags field is absent or empty', () => {
-		const entry = makeEntry({ date: new Date(), title: 'T' })
-		const partial = defaultItemResolver(entry, CONTEXT)
+		const partial = defaultItemResolver(makeArgs({ date: new Date(), title: 'T' }))
 		expect('category' in partial).toBe(false)
-	})
-
-	it('omits content when renderedHtml is empty (includeContent: false mode)', () => {
-		const entry = makeEntry({ date: new Date(), title: 'T' })
-		const partial = defaultItemResolver(entry, { ...CONTEXT, renderedHtml: '' })
-		expect('content' in partial).toBe(false)
 	})
 })
 
 describe('resolveItemFields', () => {
 	it('returns the default baseline when no per-source resolveItem is provided', () => {
-		const entry = makeEntry({
-			date: new Date('2026-04-10T00:00:00Z'),
-			description: 'Lead-in text.',
-			title: 'Hello',
-		})
-		const partial = resolveItemFields(entry, CONTEXT)
+		const partial = resolveItemFields(
+			makeArgs({
+				date: new Date('2026-04-10T00:00:00Z'),
+				description: 'Lead-in text.',
+				title: 'Hello',
+			}),
+		)
 		expect(partial.title).toBe('Hello')
 		expect(partial.description).toBe('Lead-in text.')
 	})
 
 	it('lets per-source resolveItem override default fields', () => {
-		const entry = makeEntry({ date: new Date(), title: 'T' })
-		const partial = resolveItemFields(entry, CONTEXT, () => ({ title: 'overridden' }))
+		const partial = resolveItemFields(makeArgs({ date: new Date(), title: 'T' }), () => ({
+			title: 'overridden',
+		}))
 		expect(partial.title).toBe('overridden')
 	})
 
-	it('merges fields the user sets with defaults left untouched', () => {
-		const entry = makeEntry({
-			date: new Date('2026-04-10T00:00:00Z'),
-			summary: 'short blurb',
-			title: 'T',
-		})
-		const partial = resolveItemFields(entry, CONTEXT, (innerEntry) => ({
-			description: (innerEntry.data as Record<string, unknown>).summary as string,
+	it('lets per-source resolveItem override the default link', () => {
+		const partial = resolveItemFields(makeArgs({ date: new Date(), title: 'T' }), ({ entry }) => ({
+			link: `https://example.com/custom/${entry.id}/`,
 		}))
+		expect(partial.link).toBe('https://example.com/custom/sample/')
+	})
+
+	it('merges fields the user sets with defaults left untouched', () => {
+		const partial = resolveItemFields(
+			makeArgs({
+				date: new Date('2026-04-10T00:00:00Z'),
+				summary: 'short blurb',
+				title: 'T',
+			}),
+			({ entry }) => ({
+				description: (entry.data as Record<string, unknown>).summary as string,
+			}),
+		)
 		expect(partial.title).toBe('T')
 		expect(partial.description).toBe('short blurb')
 		expect(partial.date).toEqual(new Date('2026-04-10T00:00:00Z'))
 	})
 
 	it('skips undefined values from per-source resolveItem so defaults survive', () => {
-		const entry = makeEntry({
-			date: new Date(),
-			description: 'default desc',
-			title: 'T',
-		})
-		const partial = resolveItemFields(entry, CONTEXT, () => ({ description: undefined }))
+		const partial = resolveItemFields(
+			makeArgs({
+				date: new Date(),
+				description: 'default desc',
+				title: 'T',
+			}),
+			() => ({ description: undefined }),
+		)
 		expect(partial.description).toBe('default desc')
 	})
 
-	it('passes entry and context through to the per-source resolveItem', () => {
-		const entry = makeEntry({ date: new Date(), title: 'T' })
-		let received: undefined | { context: ItemResolverContext; entry: unknown }
-		resolveItemFields(entry, CONTEXT, (innerEntry, innerContext) => {
-			received = { context: innerContext, entry: innerEntry }
+	it('passes the args object through to the per-source resolveItem', () => {
+		const args = makeArgs({ date: new Date(), title: 'T' })
+		let received: ItemResolverArgs | undefined
+		resolveItemFields(args, (innerArgs) => {
+			received = innerArgs
 			return {}
 		})
-		expect(received?.entry).toBe(entry)
-		expect(received?.context).toBe(CONTEXT)
+		expect(received).toBe(args)
 	})
 })
 
 describe('tagCategoryResolver', () => {
 	it('produces {category} with domain URLs built from basePath and siteUrl', () => {
 		const build = tagCategoryResolver({ basePath: '/tags/' })
-		const entry = makeEntry({ date: new Date(), tags: ['Hello World'], title: 'T' })
-		const result = build(entry, CONTEXT)
+		const result = build(makeArgs({ date: new Date(), tags: ['Hello World'], title: 'T' }))
 		expect(result).toEqual({
 			category: [
 				{
@@ -136,17 +151,17 @@ describe('tagCategoryResolver', () => {
 
 	it('returns an empty object when tags are absent or empty', () => {
 		const build = tagCategoryResolver({ basePath: '/tags/' })
-		const entryWithoutTags = makeEntry({ date: new Date(), title: 'T' })
-		expect(build(entryWithoutTags, CONTEXT)).toEqual({})
-		const entryWithEmptyTags = makeEntry({ date: new Date(), tags: [], title: 'T' })
-		expect(build(entryWithEmptyTags, CONTEXT)).toEqual({})
+		expect(build(makeArgs({ date: new Date(), title: 'T' }))).toEqual({})
+		expect(build(makeArgs({ date: new Date(), tags: [], title: 'T' }))).toEqual({})
 	})
 
 	it('spreads cleanly inside a source resolveItem to replace the default categories', () => {
-		const entry = makeEntry({ date: new Date(), tags: ['Foo'], title: 'T' })
-		const partial = resolveItemFields(entry, CONTEXT, (innerEntry, innerContext) => ({
-			...tagCategoryResolver({ basePath: '/tags/' })(innerEntry, innerContext),
-		}))
+		const partial = resolveItemFields(
+			makeArgs({ date: new Date(), tags: ['Foo'], title: 'T' }),
+			(args) => ({
+				...tagCategoryResolver({ basePath: '/tags/' })(args),
+			}),
+		)
 		expect(partial.category).toEqual([
 			{
 				domain: 'https://example.com/tags/foo',

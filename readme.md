@@ -33,7 +33,7 @@ It covers:
 - **Excerpt boundaries**\
   Cut posts off at an HTML comment (`<!-- excerpt -->`) or a CSS selector so teaser-style feeds work without duplicating content.
 - **Frontmatter resolvers**\
-  Customize feed `Item` output per source with a single `resolveItem(entry, context): Partial<Item>` function. Fields you set override the built-in defaults; fields you omit fall through.
+  Customize feed `Item` output per source with a single `resolveItem({entry, siteUrl}): Partial<Item>` function. Fields you set override the built-in defaults; fields you omit fall through.
 - **Works with Starlight**\
   Starlight sits on top of stock `astro:content`, so the `docs` collection can be fed just like any other collection — see [Starlight](#starlight) below.
 - **Head component**\
@@ -136,8 +136,7 @@ type Source = {
   collection: string
   filter?: (entry) => boolean
   limit?: number
-  link?: (entry, context) => string
-  resolveItem?: (entry, context) => Partial<Item>
+  resolveItem?: ({ entry, siteUrl }) => Partial<Item>
   sort?: (a, b) => number
 }
 
@@ -149,8 +148,7 @@ type SourceInput = Source | string
 - `filter` — composed with the built-in gate that drops `draft: true` / `encrypt: true` entries. Use it to hide archived posts, drafts with non-standard flags, or entries missing frontmatter your feed needs.
 - `sort` — orders this source's entries before the per-source `limit` runs.
 - `limit` — caps this source before items are merged across sources.
-- `link` — builds the per-entry URL. Defaults to `{siteUrl}/{collection}/{entry.id}/`, matching Astro's content collection routing. Override if your routes use a different shape.
-- `resolveItem` — returns a `Partial<Item>` to override built-in item fields for this source. See [Resolvers](#resolvers) below.
+- `resolveItem` — returns a `Partial<Item>` to override built-in item fields for this source, including the per-entry `link`. See [Resolvers](#resolvers) below.
 
 Example — two sources, one with a flat-slug permalink and a per-source cap:
 
@@ -162,8 +160,9 @@ feedKit({
       collection: 'posts',
       limit: 20,
       // Flat slugs: /my-post/ instead of /posts/my-post/
-      link: (entry, { siteUrl }) =>
-        new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+      resolveItem: ({ entry, siteUrl }) => ({
+        link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+      }),
     },
     'notes',
   ],
@@ -175,24 +174,26 @@ feedKit({
 Each source's `resolveItem` is one function that returns a `Partial<Item>` describing the resulting feed item:
 
 ```ts
-type ItemResolver = (
-  entry: CollectionEntry<CollectionKey>,
-  context: ItemResolverContext,
-) => Partial<Item>
+type ItemResolver = (args: {
+  entry: CollectionEntry<CollectionKey>
+  siteUrl: string
+}) => Partial<Item>
 ```
 
 Return only the fields you want to customize. Anything you omit (or return as `undefined`) falls through to the built-in defaults — it does **not** clobber them.
 
-The built-in defaults cover the common Astro frontmatter conventions:
+The built-in defaults cover the common Astro frontmatter conventions plus the per-entry link:
 
-| Item field    | Default                                                      |
-| ------------- | ------------------------------------------------------------ |
-| `title`       | `entry.data.title`                                           |
-| `date`        | `entry.data.date`                                            |
-| `published`   | `entry.data.date`                                            |
-| `description` | `entry.data.description`                                     |
-| `category`    | `entry.data.tags` mapped to `{name, term}`                   |
-| `content`     | sanitized rendered HTML (empty when `includeContent: false`) |
+| Item field    | Default                                    |
+| ------------- | ------------------------------------------ |
+| `title`       | `entry.data.title`                         |
+| `date`        | `entry.data.date`                          |
+| `published`   | `entry.data.date`                          |
+| `description` | `entry.data.description`                   |
+| `category`    | `entry.data.tags` mapped to `{name, term}` |
+| `link`        | `{siteUrl}/{entry.collection}/{entry.id}/` |
+
+`content` is populated separately by the pipeline from the sanitized rendered HTML (or dropped entirely when `includeContent: false`). Return `content: 'your string'` from a resolver only when you want to override the automatic fill.
 
 Example — a `notes` collection uses `categories` instead of `tags` and `summary` instead of `description`:
 
@@ -203,7 +204,7 @@ feedKit({
     'posts',
     {
       collection: 'notes',
-      resolveItem(entry) {
+      resolveItem({ entry }) {
         const { categories } = entry.data
         return {
           category: Array.isArray(categories)
@@ -231,8 +232,8 @@ feedKit({
   sources: [
     {
       collection: 'posts',
-      resolveItem: (entry, context) => ({
-        ...tagCategoryResolver({ basePath: '/tags/' })(entry, context),
+      resolveItem: (args) => ({
+        ...tagCategoryResolver({ basePath: '/tags/' })(args),
       }),
     },
   ],
@@ -285,7 +286,7 @@ feedKit({
 })
 ```
 
-Resolvers that read `context.renderedHtml` will see an empty string in this mode.
+Any `content` returned from a resolver is dropped in this mode.
 
 ## Starlight
 
@@ -337,8 +338,12 @@ export default defineConfig({
         {
           collection: 'docs',
           filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
-          link: (entry, { siteUrl }) =>
-            new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+          resolveItem: ({ entry, siteUrl }) => ({
+            link: new URL(
+              `${entry.id}/`,
+              siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
+            ).toString(),
+          }),
         },
       ],
     }),
@@ -389,7 +394,7 @@ Resolver closures and filter functions are passed by reference through the `glob
 
 Types:
 
-`ExcerptBoundary`, `FeedEligibleEntry`, `FeedKitConfig`, `FormatFilenames`, `FormatsInput`, `Item`, `ItemResolver`, `ItemResolverContext`, `LinkContext`, `ResolvedFeedKitConfig`, `Source`, `SourceInput`.
+`ExcerptBoundary`, `FeedEligibleEntry`, `FeedKitConfig`, `FormatFilenames`, `FormatsInput`, `Item`, `ItemResolver`, `ItemResolverArgs`, `ResolvedFeedKitConfig`, `Source`, `SourceInput`.
 
 ### `astro-feed-kit/components/FeedKit.astro` component
 

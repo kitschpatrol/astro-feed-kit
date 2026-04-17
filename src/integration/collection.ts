@@ -22,10 +22,10 @@ function defaultEligibilityFilter(entry: CollectionEntry<CollectionKey>): boolea
 }
 
 /**
- * A single source's eligible entries, grouped together so downstream code
- * knows which `Source` produced each entry. This matters because per-source
- * `link` and `resolve` run against their originating source, and the item
- * pipeline in `feed.ts` needs to look those up per entry.
+ * A single source's eligible entries, grouped together so downstream code knows
+ * which `Source` produced each entry. This matters because per-source `link`
+ * and `resolve` run against their originating source, and the item pipeline in
+ * `feed.ts` needs to look those up per entry.
  */
 export type SourceEntries = {
 	entries: Array<CollectionEntry<CollectionKey>>
@@ -36,11 +36,11 @@ export type SourceEntries = {
  * Load each configured source's eligible entries. For every source, applies
  * four gates in order:
  *
- * 1. Filter — built-in gate (drops `draft: true` / `encrypt: true`) composed
- *    with the source's optional `filter`.
- * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is
- *    enforced on each surviving entry's `data`. Throws with collection and id
- *    context on failure; silent exclusion would mask real problems.
+ * 1. Filter — built-in gate (drops `draft: true` / `encrypt: true`) composed with
+ *    the source's optional `filter`.
+ * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is enforced
+ *    on each surviving entry's `data`. Throws with collection and id context on
+ *    failure; silent exclusion would mask real problems.
  * 3. Sort — if the source sets `sort`, applies it; otherwise preserves
  *    `getCollection` order.
  * 4. Limit — if the source sets `limit`, caps to that many entries.
@@ -65,7 +65,6 @@ export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<Sou
 		// time but just `string` at runtime. A single cast at the
 		// `getCollection` boundary keeps the rest of the pipeline honest.
 		const entries = await getCollection(
-			// eslint-disable-next-line ts/no-unsafe-type-assertion
 			source.collection as CollectionKey,
 			(entry: CollectionEntry<CollectionKey>) => {
 				if (!defaultEligibilityFilter(entry)) return false

@@ -1,7 +1,7 @@
 import type * as AstroContent from 'astro:content'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import { Feed } from 'feed'
-import type { ItemResolverContext, LinkContext, ResolvedFeedKitConfig, Source } from './config'
+import type { ResolvedFeedKitConfig, Source } from './config'
 import type { Item } from './schemas'
 import { getFeedContent } from './collection'
 import { createContainer, resolveContainerRenderers } from './container'
@@ -27,9 +27,10 @@ function maxDate(dates: Date[]): Date | undefined {
 }
 
 /**
- * Render a single entry through the pipeline: derive its link, render and
- * sanitize its HTML (skipped when `config.includeContent` is `false`), then
- * run the resolver layers to build an `Item`.
+ * Render a single entry through the pipeline: run the resolver to derive the
+ * link (and other fields), render and sanitize its HTML (skipped when
+ * `config.includeContent` is `false`), then populate `content` from the
+ * sanitized HTML unless the resolver already set one.
  *
  * `container` may be `undefined` when content is excluded — there's nothing to
  * render, and `createContainer` is bypassed up the call chain to avoid its
@@ -43,16 +44,16 @@ async function buildItem(
 	siteUrl: string,
 	render: AstroContentRender | undefined,
 ): Promise<Item> {
-	const linkContext: LinkContext = {
-		collection: entry.collection,
-		siteUrl,
+	const partial = resolveItemFields({ entry, siteUrl }, source.resolveItem)
+	// `defaultItemResolver` always sets `link`; the user's resolver may
+	// override it. Either way, `partial.link` is defined here.
+	const { link } = partial
+	if (link === undefined) {
+		throw new Error(
+			`feed-kit: resolveItem returned link: undefined for ${entry.collection}/${entry.id}. ` +
+				'Return a string (or omit the field to use the default) so sanitize has a base URL.',
+		)
 	}
-	const link =
-		source.link?.(entry, linkContext) ??
-		new URL(
-			`${entry.collection}/${entry.id}/`,
-			siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
-		).toString()
 
 	let renderedHtml = ''
 	if (container !== undefined && render !== undefined) {
@@ -61,17 +62,17 @@ async function buildItem(
 		renderedHtml = await sanitizeHtml(rawHtml, link, config.excerptBoundary)
 	}
 
-	const resolverContext: ItemResolverContext = { ...linkContext, renderedHtml }
-	const partial = resolveItemFields(entry, resolverContext, source.resolveItem)
-
 	const assembled: Record<string, unknown> = {
 		...partial,
 		id: partial.id ?? link,
-		link,
 	}
-	// `includeContent: false` is authoritative — drop any `content` a custom
-	// resolver may have produced so the field is omitted from the feed.
-	if (!config.includeContent) {
+	// `includeContent: false` is authoritative — drop any `content` the
+	// resolver produced so the field is omitted from the feed. Otherwise,
+	// the resolver's explicit value wins; fall through to the sanitized
+	// render when the resolver left it alone.
+	if (config.includeContent) {
+		assembled.content ??= renderedHtml === '' ? undefined : renderedHtml
+	} else {
 		delete assembled.content
 	}
 
@@ -109,10 +110,9 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 	const sourceGroups = await getFeedContent(config)
 
 	// Skip the AstroContainer (and its renderer dynamic-imports) entirely
-	// when no item will carry rendered content. Resolvers that depend on
-	// `context.renderedHtml` will see an empty string in this mode. The
-	// `astro:content` virtual module is also only needed for content
-	// rendering, so we lazy-load it here.
+	// when no item will carry rendered content. The `astro:content` virtual
+	// module is also only needed for content rendering, so we lazy-load it
+	// here.
 	let container: Awaited<ReturnType<typeof createContainer>> | undefined
 	let render: AstroContentRender | undefined
 	if (config.includeContent) {

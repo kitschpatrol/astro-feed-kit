@@ -32,8 +32,12 @@ export default defineConfig({
 					// Starlight mounts the `docs` collection at the site root, so feed
 					// links should drop the `docs/` collection prefix feed-kit uses by
 					// default (`{siteUrl}/{collection}/{entry.id}/`).
-					link: (entry, { siteUrl }) =>
-						new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+					resolveItem: ({ entry, siteUrl }) => ({
+						link: new URL(
+							`${entry.id}/`,
+							siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
+						).toString(),
+					}),
 				},
 			],
 		}),

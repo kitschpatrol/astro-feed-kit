@@ -15,17 +15,16 @@ export default defineConfig({
 				'posts',
 				{
 					collection: 'notes',
-					resolveItem(entry) {
-						const data = entry.data as Record<string, unknown>
-						const { categories } = data
-						const description = data.summary
+					resolveItem({ entry }) {
+						const { categories, summary } = entry.data
+
 						return {
 							category: Array.isArray(categories)
 								? categories
 										.filter((name): name is string => typeof name === 'string')
 										.map((name) => ({ name, term: name.toLowerCase() }))
 								: undefined,
-							description: typeof description === 'string' ? description : undefined,
+							description: summary,
 						}
 					},
 				},

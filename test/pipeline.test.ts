@@ -7,6 +7,7 @@
 // of container probing and Vite module-graph concerns.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { SourceInput } from '../src/integration/config'
 import type { Item } from '../src/integration/schemas'
 import { defineFeedKitConfig } from '../src/integration/config'
 import { generateFeed } from '../src/integration/feed'
@@ -17,12 +18,36 @@ type FakeEntry = {
 	id: string
 }
 
+// Loose shape used when authoring synthetic source descriptors. Mirrors
+// `Source<C>` but operates on `FakeEntry` and any string for `collection`,
+// since these tests mock `astro:content` and the collection names here (e.g.
+// 'posts', 'notes') intentionally live outside the real `CollectionKey`
+// union declared in the consumer's project.
+type FakeSource = {
+	collection: string
+	filter?: (entry: FakeEntry) => boolean
+	limit?: number
+	resolveItem?: (args: { entry: FakeEntry; siteUrl: string }) => Partial<Item>
+	sort?: (a: FakeEntry, b: FakeEntry) => number
+}
+
 const EXAMPLE_LINK_RE = /^https:\/\/example\.com\//
 
 const entryStore = new Map<string, FakeEntry[]>()
 
 function setCollection(name: string, entries: FakeEntry[]): void {
 	entryStore.set(name, entries)
+}
+
+/**
+ * Cast a synthetic source descriptor to `SourceInput`. The real type narrows
+ * `collection` against the project's `CollectionKey`, but these tests use names
+ * that aren't in that union — the pipeline operates on the mocked
+ * `astro:content` entries, not real collections, so the narrowing would only
+ * get in the way.
+ */
+function source(spec: FakeSource | string): SourceInput {
+	return spec as unknown as SourceInput
 }
 
 vi.mock('astro:content', () => ({
@@ -60,11 +85,11 @@ describe('pipeline: per-source behavior', () => {
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
-				{
+				source({
 					collection: 'posts',
-					filter: (entry) => (entry.data as Record<string, unknown>).archived !== true,
-				},
-				{ collection: 'notes' },
+					filter: (entry) => entry.data.archived !== true,
+				}),
+				source({ collection: 'notes' }),
 			],
 		})
 
@@ -88,11 +113,11 @@ describe('pipeline: per-source behavior', () => {
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
-				{
+				source({
 					collection: 'posts',
 					limit: 2,
-					sort: (a, b) => b.data.date!.getTime() - a.data.date!.getTime(),
-				},
+					sort: (a, b) => (b.data.date as Date).getTime() - (a.data.date as Date).getTime(),
+				}),
 			],
 		})
 
@@ -117,7 +142,7 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 				// merged items.
 				return a.date.getTime() - b.date.getTime()
 			},
-			sources: [{ collection: 'posts' }, { collection: 'notes' }],
+			sources: [source({ collection: 'posts' }), source({ collection: 'notes' })],
 		})
 
 		const feed = await generateFeed(config)
@@ -142,7 +167,7 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			limit: 2,
-			sources: [{ collection: 'posts' }, { collection: 'notes' }],
+			sources: [source({ collection: 'posts' }), source({ collection: 'notes' })],
 		})
 
 		const feed = await generateFeed(config)
@@ -167,12 +192,12 @@ describe('pipeline: per-source resolveItem', () => {
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
-				{
+				source({
 					collection: 'posts',
-					resolveItem: (entry) => ({
-						description: (entry.data as Record<string, unknown>).summary as string,
+					resolveItem: ({ entry }) => ({
+						description: entry.data.summary as string,
 					}),
-				},
+				}),
 			],
 		})
 
@@ -187,7 +212,7 @@ describe('pipeline: per-source resolveItem', () => {
 		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
-			sources: ['posts'],
+			sources: [source('posts')],
 		})
 
 		const feed = await generateFeed(config)

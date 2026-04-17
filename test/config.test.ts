@@ -1,7 +1,17 @@
+/* eslint-disable ts/no-unsafe-type-assertion */
 import { describe, expect, it } from 'vitest'
+import type { SourceInput } from '../src/integration/config'
 import { defaultItemSort, defineFeedKitConfig, getFeedPath } from '../src/integration/config'
 
-const linkFn = (): string => 'https://example.com/posts/x'
+const resolveItemFn = (): { link: string } => ({ link: 'https://example.com/posts/x' })
+
+// Synthetic collection names ('posts', 'notes') used below live outside the
+// project's real `CollectionKey` union. `Source`'s `collection` field narrows
+// to that union, so descriptors must be cast through this helper. Behavior
+// under test is config resolution, not Astro's collection-name typing.
+function source(spec: Record<string, unknown> | string): SourceInput {
+	return spec as unknown as SourceInput
+}
 
 const baseInput = {
 	feedOptions: {
@@ -9,7 +19,7 @@ const baseInput = {
 		link: 'https://example.com',
 		title: 't',
 	},
-	sources: [{ collection: 'posts', link: () => 'https://example.com/posts/x' }],
+	sources: [source({ collection: 'posts', resolveItem: resolveItemFn })],
 }
 
 describe('defineFeedKitConfig', () => {
@@ -55,22 +65,27 @@ describe('defineFeedKitConfig', () => {
 	})
 
 	it('normalizes string source shorthand to {collection}', () => {
-		const resolved = defineFeedKitConfig({ ...baseInput, sources: ['posts', 'notes'] })
+		const resolved = defineFeedKitConfig({
+			...baseInput,
+			sources: [source('posts'), source('notes')],
+		})
 		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes' }])
 	})
 
 	it('preserves object source descriptors', () => {
 		const resolved = defineFeedKitConfig({
 			...baseInput,
-			sources: [{ collection: 'posts', limit: 5, link: linkFn }],
+			sources: [source({ collection: 'posts', limit: 5, resolveItem: resolveItemFn })],
 		})
-		expect(resolved.sources).toEqual([{ collection: 'posts', limit: 5, link: linkFn }])
+		expect(resolved.sources).toEqual([
+			{ collection: 'posts', limit: 5, resolveItem: resolveItemFn },
+		])
 	})
 
 	it('accepts a mix of string and descriptor sources', () => {
 		const resolved = defineFeedKitConfig({
 			...baseInput,
-			sources: ['posts', { collection: 'notes', limit: 10 }],
+			sources: [source('posts'), source({ collection: 'notes', limit: 10 })],
 		})
 		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes', limit: 10 }])
 	})
