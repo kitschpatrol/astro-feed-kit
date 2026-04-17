@@ -4,9 +4,9 @@ import type { FeedOptions } from 'feed'
 import type { Item } from './schemas'
 
 /**
- * Context passed to a `CollectionConfig.link` function. Available before the
- * entry is rendered, because the derived link is used both as the item's final
- * URL and as the permalink fed to the HTML sanitizer.
+ * Context passed to a `Source.link` function. Available before the entry is
+ * rendered, because the derived link is used both as the item's final URL and
+ * as the permalink fed to the HTML sanitizer.
  */
 export type LinkContext = {
 	collection: string
@@ -14,57 +14,55 @@ export type LinkContext = {
 }
 
 /**
- * Context passed to an item resolver. Extends `LinkContext` with the sanitized,
- * rendered HTML of the entry — available because resolvers run after the
- * content container has produced output.
+ * Context passed to a `Source.resolve` function. Extends `LinkContext` with
+ * the sanitized, rendered HTML of the entry — available because resolvers run
+ * after the content container has produced output.
  */
 export type ResolverContext = LinkContext & {
 	renderedHtml: string
 }
 
 /**
- * A resolver for a single field on the feed `Item`. May be:
- *
- * - A string naming a field on `entry.data` to read directly.
- * - An object `{from, transform}` that reads `entry.data[from]` and transforms
- *   the raw value into the item field value.
- * - A function that receives the entry and resolver context and returns the item
- *   field value (or `undefined` to leave it unset).
- *
- * Resolvers may return `undefined` to signal "no value" — the field is then
- * omitted from the item.
+ * Per-entry resolver function. Returns a `Partial<Item>` containing any fields
+ * it wants to set on the resulting feed item. Fields omitted (or returned as
+ * `undefined`) fall through to the built-in defaults — they don't clobber the
+ * baseline. This is the single extension point for customizing feed items from
+ * collection data.
  */
-export type EntryResolver<Value> =
-	| ((entry: CollectionEntry<CollectionKey>, context: ResolverContext) => undefined | Value)
-	| string
-	| {
-			from: string
-			transform: (value: unknown, context: ResolverContext) => undefined | Value
-	  }
+export type Resolve = (
+	entry: CollectionEntry<CollectionKey>,
+	context: ResolverContext,
+) => Partial<Item>
 
 /**
- * Mapping from feed `Item` field names to their resolvers. Every field is
- * optional; unspecified fields fall through to site-wide resolvers, then to
- * built-in defaults.
- */
-export type ItemResolvers = {
-	[K in keyof Item]?: EntryResolver<Item[K]>
-}
-
-/**
- * Per-collection configuration. `link` is optional — when omitted, items are
- * linked at `{siteUrl}/{collection}/{entry.id}/`, matching Astro's default
- * content collection routing convention. Provide an explicit `link` to
+ * Per-source configuration. One source produces one collection's worth of
+ * feed items. Every field other than `collection` is optional and narrows
+ * behavior for that source only.
+ *
+ * The `link` default (when omitted) is `{siteUrl}/{collection}/{entry.id}/`,
+ * matching Astro's default content collection routing. Provide `link` to
  * customize per-entry URLs (e.g. flat slugs, dated paths, custom permalinks).
- *
- * Resolvers declared here take precedence over the top-level `resolvers` field
- * on `FeedConfigInput`.
  */
-export type CollectionConfig = {
-	key: string
+export type Source = {
+	collection: string
+	/** Narrows eligible entries. Composed with the built-in draft/encrypt gate. */
+	filter?: (entry: CollectionEntry<CollectionKey>) => boolean
+	/** Caps this source before items are merged across sources. */
+	limit?: number
+	/** Builds the per-entry URL for items from this source. */
 	link?: (entry: CollectionEntry<CollectionKey>, context: LinkContext) => string
-	resolvers?: ItemResolvers
+	/** Overrides or augments built-in item defaults for this source. */
+	resolve?: Resolve
+	/** Sorts this source's entries before the per-source `limit` is applied. */
+	sort?: (a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number
 }
+
+/**
+ * User-facing source shape. A bare string is shorthand for `{ collection:
+ * string }` with default behavior — convenient when no per-source
+ * customization is needed.
+ */
+export type SourceInput = Source | string
 
 /**
  * Where to stop when deriving an item's rendered HTML. Applied to the sanitized
@@ -102,11 +100,10 @@ export type FeedFilenames = {
 export type FeedsInput = Partial<Record<keyof FeedFilenames, boolean | string>>
 
 /**
- * Input shape accepted by `defineFeedConfig`. Every field except
- * `contentCollections` and `feedOptions` has a default.
+ * Input shape accepted by `defineFeedConfig`. Every field except `sources`
+ * and `feedOptions` has a default.
  */
 export type FeedConfigInput = {
-	contentCollections: CollectionConfig[]
 	/**
 	 * Truncates each entry's rendered HTML at a marker. Defaults to `{comment:
 	 * 'excerpt'}`, which matches the `<!-- excerpt -->` comment emitted by this
@@ -136,7 +133,6 @@ export type FeedConfigInput = {
 	 * the default filename. Pass a string to enable with a custom filename.
 	 */
 	feeds?: FeedsInput
-	filter?: (entry: CollectionEntry<CollectionKey>) => boolean
 	/**
 	 * Whether to populate each item's full HTML `content` field. Defaults to
 	 * `true`. Set to `false` to publish a metadata-only feed (title, description,
@@ -156,9 +152,9 @@ export type FeedConfigInput = {
 	 */
 	knownRenderers?: string[]
 	/**
-	 * Maximum number of items included in the generated feed, applied after sort.
-	 * Defaults to `25`. Pass `Infinity` to include every eligible entry (not
-	 * recommended for large archives — feed readers don't need history).
+	 * Maximum number of items in the merged feed, applied after the final
+	 * `sort`. Defaults to `25`. Pass `Infinity` to include every eligible item
+	 * (not recommended for large archives — feed readers don't need history).
 	 */
 	limit?: number
 	/**
@@ -174,8 +170,13 @@ export type FeedConfigInput = {
 	 * 	feedKit({ renderers: [mdxRenderer()], ... })
 	 */
 	renderers?: AstroRenderer[]
-	resolvers?: ItemResolvers
-	sort?: (a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number
+	/**
+	 * Orders the merged item set across all sources. Operates on resolved
+	 * `Item` shape — fields are uniform regardless of source collection.
+	 * Defaults to newest `date` first.
+	 */
+	sort?: (a: Item, b: Item) => number
+	sources: SourceInput[]
 }
 
 /**
@@ -185,7 +186,6 @@ export type FeedConfigInput = {
  * them.
  */
 export type FeedConfig = {
-	contentCollections: CollectionConfig[]
 	excerptBoundary: ExcerptBoundary | false
 	feedOptions: FeedOptions
 	/**
@@ -194,7 +194,6 @@ export type FeedConfig = {
 	 * and no `<link>` is emitted for it.
 	 */
 	feeds: Partial<FeedFilenames>
-	filter?: ((entry: CollectionEntry<CollectionKey>) => boolean) | undefined
 	includeContent: boolean
 	knownRenderers: string[]
 	limit: number
@@ -215,10 +214,8 @@ export type FeedConfig = {
 	 * and for exotic install layouts.
 	 */
 	renderers: AstroRenderer[]
-	resolvers: ItemResolvers
-	sort?:
-		| ((a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number)
-		| undefined
+	sort: (a: Item, b: Item) => number
+	sources: Source[]
 }
 
 const DEFAULT_FEEDS: FeedFilenames = {
@@ -256,6 +253,22 @@ const DEFAULT_KNOWN_RENDERERS = [
 	'@astrojs/solid-js',
 	'@astrojs/lit',
 ]
+
+/**
+ * Default merged-item sort: newest `Item.date` first.
+ */
+export function defaultItemSort(a: Item, b: Item): number {
+	return b.date.getTime() - a.date.getTime()
+}
+
+/**
+ * Normalize one entry in the user-facing `sources` array. A bare string is
+ * expanded to `{ collection: string }`; objects pass through unchanged.
+ */
+function normalizeSource(input: SourceInput): Source {
+	if (typeof input === 'string') return { collection: input }
+	return input
+}
 
 function joinUrl(base: string, path: string): string {
 	// Using URL keeps trailing-slash and leading-slash ambiguity handled by
@@ -307,17 +320,15 @@ export function defineFeedConfig(input: FeedConfigInput): FeedConfig {
 	}
 
 	return {
-		contentCollections: input.contentCollections,
 		excerptBoundary: input.excerptBoundary ?? DEFAULT_EXCERPT_BOUNDARY,
 		feedOptions,
 		feeds,
-		filter: input.filter,
 		includeContent: input.includeContent ?? true,
 		knownRenderers,
 		limit: input.limit ?? DEFAULT_LIMIT,
 		renderers: input.renderers ?? [],
-		resolvers: input.resolvers ?? {},
-		sort: input.sort,
+		sort: input.sort ?? defaultItemSort,
+		sources: input.sources.map((source) => normalizeSource(source)),
 	}
 }
 

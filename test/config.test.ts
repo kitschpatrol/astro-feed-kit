@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { defineFeedConfig, getFeedPath } from '../src/integration/config'
+import { defaultItemSort, defineFeedConfig, getFeedPath } from '../src/integration/config'
+
+const linkFn = (): string => 'https://example.com/posts/x'
 
 const baseInput = {
-	contentCollections: [{ key: 'posts', link: () => 'https://example.com/posts/x' }],
 	feedOptions: {
 		description: 'd',
 		link: 'https://example.com',
 		title: 't',
 	},
+	sources: [{ collection: 'posts', link: () => 'https://example.com/posts/x' }],
 }
 
 describe('defineFeedConfig', () => {
@@ -31,6 +33,11 @@ describe('defineFeedConfig', () => {
 		expect(resolved.includeContent).toBe(true)
 	})
 
+	it('defaults sort to the built-in date-desc item sort', () => {
+		const resolved = defineFeedConfig(baseInput)
+		expect(resolved.sort).toBe(defaultItemSort)
+	})
+
 	it('respects user overrides for feeds, limit, excerptBoundary, includeContent', () => {
 		const resolved = defineFeedConfig({
 			...baseInput,
@@ -45,6 +52,27 @@ describe('defineFeedConfig', () => {
 		expect(resolved.limit).toBe(5)
 		expect(resolved.excerptBoundary).toBe(false)
 		expect(resolved.includeContent).toBe(false)
+	})
+
+	it('normalizes string source shorthand to {collection}', () => {
+		const resolved = defineFeedConfig({ ...baseInput, sources: ['posts', 'notes'] })
+		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes' }])
+	})
+
+	it('preserves object source descriptors', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			sources: [{ collection: 'posts', limit: 5, link: linkFn }],
+		})
+		expect(resolved.sources).toEqual([{ collection: 'posts', limit: 5, link: linkFn }])
+	})
+
+	it('accepts a mix of string and descriptor sources', () => {
+		const resolved = defineFeedConfig({
+			...baseInput,
+			sources: ['posts', { collection: 'notes', limit: 10 }],
+		})
+		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes', limit: 10 }])
 	})
 
 	it('derives feedLinks from siteLink and feeds', () => {

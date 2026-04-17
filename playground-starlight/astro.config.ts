@@ -19,9 +19,16 @@ export default defineConfig({
 			title: 'astro-feed-kit',
 		}),
 		feedKit({
-			contentCollections: [
+			feedOptions: {
+				description: 'Docs feed from the astro-feed-kit Starlight playground.',
+				title: 'astro-feed-kit (Starlight)',
+			},
+			sources: [
 				{
-					key: 'docs',
+					collection: 'docs',
+					// Starlight pages without a `date` (e.g. the splash homepage)
+					// have no place in a dated feed.
+					filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
 					// Starlight mounts the `docs` collection at the site root, so feed
 					// links should drop the `docs/` collection prefix feed-kit uses by
 					// default (`{siteUrl}/{collection}/{entry.id}/`).
@@ -29,12 +36,6 @@ export default defineConfig({
 						new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
 				},
 			],
-			feedOptions: {
-				description: 'Docs feed from the astro-feed-kit Starlight playground.',
-				title: 'astro-feed-kit (Starlight)',
-			},
-			// Skip pages with no `date` in frontmatter (e.g. the splash homepage).
-			filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
 		}),
 	],
 	site: 'http://localhost:4321',

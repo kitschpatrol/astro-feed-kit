@@ -33,7 +33,7 @@ It covers:
 - **Excerpt boundaries**\
   Cut posts off at an HTML comment (`<!-- excerpt -->`) or a CSS selector so teaser-style feeds work without duplicating content.
 - **Frontmatter resolvers**\
-  Map entry fields onto feed `Item` properties via string paths, `{from, transform}` pairs, or full functions. Per-collection overrides take precedence over site-wide resolvers.
+  Customize feed `Item` output per source with a single `resolve(entry, context): Partial<Item>` function. Fields you set override the built-in defaults; fields you omit fall through.
 - **Works with Starlight**\
   Starlight sits on top of stock `astro:content`, so the `docs` collection can be fed just like any other collection — see [Starlight](#starlight) below.
 - **Head component**\
@@ -53,7 +53,7 @@ pnpm add astro-feed-kit
 
 ### Integration setup
 
-Add the integration to your Astro config and declare which content collections should feed items into the feed:
+Add the integration to your Astro config and list the content collections that should feed items into the feed:
 
 ```ts
 // In astro.config.ts
@@ -63,16 +63,18 @@ import { defineConfig } from 'astro/config'
 export default defineConfig({
   integrations: [
     feedKit({
-      contentCollections: [{ key: 'posts' }],
       feedOptions: {
         description: 'Latest posts from example.com',
         title: 'Example Blog',
       },
+      sources: ['posts'],
     }),
   ],
   site: 'https://example.com',
 })
 ```
+
+A bare string in `sources` is shorthand for `{ collection: 'posts' }` with default behavior. Reach for the object form when you want to filter, sort, cap, re-link, or reshape that source's items.
 
 The integration mounts three endpoints — served on request during `astro dev`, and prerendered at build time:
 
@@ -113,119 +115,123 @@ This emits three `<link rel="alternate">` tags pointing to the three feed endpoi
 
 The integration accepts a single `FeedConfigInput` object.
 
-| Option               | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                              |
-| -------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contentCollections` | `CollectionConfig[]`                                            | —                                                                                                                           | Required. Collections to include, each with an optional `link` function and optional per-collection `resolvers`.                                                                                         |
-| `feedOptions`        | `FeedOptions` (from `feed`)                                     | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site`.                                                            |
-| `filter`             | `(entry) => boolean`                                            | `undefined`                                                                                                                 | Further narrows the eligible entry set. Composed with the built-in gate that drops entries with `draft: true` or `encrypt: true` in their frontmatter.                                                   |
-| `sort`               | `(a, b) => number`                                              | newest `date` first                                                                                                         | Custom comparator over eligible entries.                                                                                                                                                                 |
-| `limit`              | `number`                                                        | `25`                                                                                                                        | Maximum items included, applied after sort. Pass `Infinity` to include every entry.                                                                                                                      |
-| `includeContent`     | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                  |
-| `excerptBoundary`    | `{comment: string} \| {selector: string} \| false`              | `{comment: 'excerpt'}`                                                                                                      | Where to truncate the rendered HTML. `false` disables truncation.                                                                                                                                        |
-| `feeds`              | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename. |
-| `knownRenderers`     | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to load. Merged with a default list of known Astro renderers.                                                                                                               |
-| `resolvers`          | `ItemResolvers`                                                 | `{}`                                                                                                                        | Site-wide resolvers applied to every collection. Overridden by per-collection resolvers.                                                                                                                 |
+| Option            | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`         | `SourceInput[]`                                                 | —                                                                                                                           | Required. One entry per content collection you want in the feed. A bare string is shorthand for `{ collection: string }`; use the object form to customize that source (see [Sources](#sources) below).  |
+| `feedOptions`     | `FeedOptions` (from `feed`)                                     | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site`.                                                            |
+| `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                        |
+| `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                      |
+| `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                  |
+| `excerptBoundary` | `{comment: string} \| {selector: string} \| false`              | `{comment: 'excerpt'}`                                                                                                      | Where to truncate the rendered HTML. `false` disables truncation.                                                                                                                                        |
+| `feeds`           | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename. |
+| `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to load. Merged with a default list of known Astro renderers.                                                                                                               |
 
-### Collections
+### Sources
 
-Each entry in `contentCollections` is a `CollectionConfig`:
+Each entry in `sources` is either a collection name string or a `Source` object:
 
 ```ts
-type CollectionConfig = {
-  key: string
+type Source = {
+  collection: string
+  filter?: (entry) => boolean
+  limit?: number
   link?: (entry, context) => string
-  resolvers?: ItemResolvers
+  resolve?: (entry, context) => Partial<Item>
+  sort?: (a, b) => number
 }
+
+type SourceInput = Source | string
 ```
 
-`key` is the collection name registered in `src/content.config.ts`. `link` produces the per-entry permalink — the default is `{siteUrl}/{collection}/{entry.id}/`, matching Astro's content collection routing convention. Override it if your routes use a different shape:
+`collection` is the collection name registered in `src/content.config.ts`. Everything else narrows behavior for that source alone:
+
+- `filter` — composed with the built-in gate that drops `draft: true` / `encrypt: true` entries. Use it to hide archived posts, drafts with non-standard flags, or entries missing frontmatter your feed needs.
+- `sort` — orders this source's entries before the per-source `limit` runs.
+- `limit` — caps this source before items are merged across sources.
+- `link` — builds the per-entry URL. Defaults to `{siteUrl}/{collection}/{entry.id}/`, matching Astro's content collection routing. Override if your routes use a different shape.
+- `resolve` — returns a `Partial<Item>` to override built-in item fields for this source. See [Resolvers](#resolvers) below.
+
+Example — two sources, one with a flat-slug permalink and a per-source cap:
 
 ```ts
 feedKit({
-  contentCollections: [
+  feedOptions: { description: '…', title: 'Example' },
+  sources: [
     {
-      key: 'posts',
+      collection: 'posts',
+      limit: 20,
       // Flat slugs: /my-post/ instead of /posts/my-post/
       link: (entry, { siteUrl }) =>
         new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
     },
+    'notes',
   ],
-  feedOptions: { description: '...', title: 'Example' },
 })
 ```
 
 ### Resolvers
 
-Resolvers map entry data onto feed `Item` fields. Each field accepts one of three forms:
+Each source's `resolve` is one function that turns an entry into the fields you want on the resulting feed item:
 
 ```ts
-type EntryResolver<Value> =
-  | ((entry: CollectionEntry<CollectionKey>, context: ResolverContext) => undefined | Value)
-  | string // Read `entry.data[key]` directly
-  | {
-      from: string
-      transform: (value: unknown, context: ResolverContext) => undefined | Value
-    }
+type Resolve = (entry: CollectionEntry<CollectionKey>, context: ResolverContext) => Partial<Item>
 ```
 
-Resolvers returning `undefined` are treated as "no value" — the field is omitted from the item.
+Return only the fields you want to customize. Anything you omit (or return as `undefined`) falls through to the built-in defaults — it does **not** clobber them.
 
 The built-in defaults cover the common Astro frontmatter conventions:
 
-| Item field    | Default resolver                           |
-| ------------- | ------------------------------------------ |
-| `title`       | `entry.data.title`                         |
-| `date`        | `entry.data.date`                          |
-| `published`   | `entry.data.date`                          |
-| `description` | `entry.data.description`                   |
-| `category`    | `entry.data.tags` mapped to `{name, term}` |
-| `content`     | sanitized rendered HTML                    |
-
-Precedence, high to low:
-
-1. `collectionConfig.resolvers[key]` — per-collection override
-2. `resolvers[key]` — site-wide override
-3. built-in default
+| Item field    | Default                                                      |
+| ------------- | ------------------------------------------------------------ |
+| `title`       | `entry.data.title`                                           |
+| `date`        | `entry.data.date`                                            |
+| `published`   | `entry.data.date`                                            |
+| `description` | `entry.data.description`                                     |
+| `category`    | `entry.data.tags` mapped to `{name, term}`                   |
+| `content`     | sanitized rendered HTML (empty when `includeContent: false`) |
 
 Example — a `notes` collection uses `categories` instead of `tags` and `summary` instead of `description`:
 
 ```ts
 feedKit({
-  contentCollections: [
-    { key: 'posts' },
+  feedOptions: { description: '…', title: 'Example' },
+  sources: [
+    'posts',
     {
-      key: 'notes',
-      resolvers: {
-        category: {
-          from: 'categories',
-          transform: (value) =>
-            Array.isArray(value)
-              ? value
-                  .filter((name): name is string => typeof name === 'string')
-                  .map((name) => ({ name, term: name.toLowerCase() }))
-              : undefined,
-        },
-        description: 'summary',
+      collection: 'notes',
+      resolve(entry) {
+        const { categories } = entry.data
+        return {
+          category: Array.isArray(categories)
+            ? categories
+                .filter((name): name is string => typeof name === 'string')
+                .map((name) => ({ name, term: name.toLowerCase() }))
+            : undefined,
+          description: entry.data.summary,
+        }
       },
     },
   ],
-  feedOptions: { description: '…', title: 'Example' },
 })
 ```
 
 ### Tag category resolver
 
-`tagCategoryResolver` is a convenience builder for sites that route per-tag pages at a stable URL prefix. It emits `{name, term, domain}` so feed readers can link categories to your tag pages:
+`tagCategoryResolver` is a convenience builder for sites that route per-tag pages at a stable URL prefix. It produces a `{category}` partial with `{name, term, domain}` entries, ready to spread inside your `resolve`:
 
 ```ts
 import feedKit, { tagCategoryResolver } from 'astro-feed-kit'
 
 feedKit({
-  contentCollections: [{ key: 'posts' }],
   feedOptions: { description: '…', title: 'Example' },
-  resolvers: {
-    category: tagCategoryResolver({ basePath: '/tags/' }),
-  },
+  sources: [
+    {
+      collection: 'posts',
+      resolve: (entry, context) => ({
+        ...tagCategoryResolver({ basePath: '/tags/' })(entry, context),
+      }),
+    },
+  ],
 })
 ```
 
@@ -269,9 +275,9 @@ Set `includeContent: false` to skip the render and sanitize pipeline entirely. T
 
 ```ts
 feedKit({
-  contentCollections: [{ key: 'posts' }],
   feedOptions: { description: '…', title: 'Example' },
   includeContent: false,
+  sources: ['posts'],
 })
 ```
 
@@ -319,18 +325,18 @@ export default defineConfig({
       title: 'Example docs',
     }),
     feedKit({
-      contentCollections: [
-        {
-          key: 'docs',
-          link: (entry, { siteUrl }) =>
-            new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
-        },
-      ],
       feedOptions: {
         description: 'Latest docs updates.',
         title: 'Example docs',
       },
-      filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
+      sources: [
+        {
+          collection: 'docs',
+          filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
+          link: (entry, { siteUrl }) =>
+            new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+        },
+      ],
     }),
   ],
   site: 'https://example.com',
@@ -369,7 +375,6 @@ Resolver closures and filter functions are passed by reference through the `glob
 | `defineFeedConfig`        | function | Merge user input with defaults and produce a fully resolved `FeedConfig`. Useful when hand-rolling endpoints.   |
 | `generateFeed`            | function | Build a populated `Feed` instance from a `FeedConfig`. Returns a `feed` library `Feed` ready for serialization. |
 | `getFeedPath`             | function | Resolve the site-relative path for a feed format given a `FeedConfig`.                                          |
-| `applyResolvers`          | function | Run the resolver chain for a single entry. Exposed for custom endpoint code.                                    |
 | `tagCategoryResolver`     | function | Build a `category` resolver that emits `{name, term, domain}` with per-tag URLs.                                |
 | `ItemSchema`              | schema   | Zod schema for the feed `Item` shape.                                                                           |
 | `FeedEligibleEntrySchema` | schema   | Zod schema enforcing the minimum entry contract (`title`, `date`).                                              |
@@ -380,7 +385,7 @@ Resolver closures and filter functions are passed by reference through the `glob
 
 Types:
 
-`CollectionConfig`, `EntryResolver`, `ExcerptBoundary`, `FeedConfig`, `FeedConfigInput`, `FeedEligibleEntry`, `FeedFilenames`, `Item`, `ItemResolvers`, `LinkContext`, `ResolverContext`.
+`ExcerptBoundary`, `FeedConfig`, `FeedConfigInput`, `FeedEligibleEntry`, `FeedFilenames`, `FeedsInput`, `Item`, `LinkContext`, `Resolve`, `ResolverContext`, `Source`, `SourceInput`.
 
 ### `astro-feed-kit/components/FeedKit.astro` component
 

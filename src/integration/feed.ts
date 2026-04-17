@@ -1,11 +1,11 @@
 import type * as AstroContent from 'astro:content'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import { Feed } from 'feed'
-import type { FeedConfig, LinkContext, ResolverContext } from './config'
+import type { FeedConfig, LinkContext, ResolverContext, Source } from './config'
 import type { Item } from './schemas'
 import { getFeedContent } from './collection'
 import { createContainer, resolveContainerRenderers } from './container'
-import { applyResolvers } from './item-map'
+import { resolveItem } from './item-map'
 import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
 
@@ -16,17 +16,6 @@ import { ItemSchema } from './schemas'
  * Vite is not yet active) without crashing.
  */
 type AstroContentRender = typeof AstroContent.render
-
-function findCollectionConfig(config: FeedConfig, collectionKey: string) {
-	const match = config.contentCollections.find((c) => c.key === collectionKey)
-	if (match === undefined) {
-		throw new Error(
-			`No CollectionConfig registered for collection '${collectionKey}'. ` +
-				`Add it to contentCollections or filter the entry out via config.filter.`,
-		)
-	}
-	return match
-}
 
 function maxDate(dates: Date[]): Date | undefined {
 	if (dates.length === 0) return undefined
@@ -39,8 +28,8 @@ function maxDate(dates: Date[]): Date | undefined {
 
 /**
  * Render a single entry through the pipeline: derive its link, render and
- * sanitize its HTML (skipped when `config.includeContent` is `false`), then run
- * the resolver chain to build an `Item`.
+ * sanitize its HTML (skipped when `config.includeContent` is `false`), then
+ * run the resolver layers to build an `Item`.
  *
  * `container` may be `undefined` when content is excluded — there's nothing to
  * render, and `createContainer` is bypassed up the call chain to avoid its
@@ -48,19 +37,18 @@ function maxDate(dates: Date[]): Date | undefined {
  */
 async function buildItem(
 	entry: CollectionEntry<CollectionKey>,
+	source: Source,
 	config: FeedConfig,
 	container: Awaited<ReturnType<typeof createContainer>> | undefined,
 	siteUrl: string,
 	render: AstroContentRender | undefined,
 ): Promise<Item> {
-	const collectionConfig = findCollectionConfig(config, entry.collection)
-
 	const linkContext: LinkContext = {
 		collection: entry.collection,
 		siteUrl,
 	}
 	const link =
-		collectionConfig.link?.(entry, linkContext) ??
+		source.link?.(entry, linkContext) ??
 		new URL(
 			`${entry.collection}/${entry.id}/`,
 			siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
@@ -74,7 +62,7 @@ async function buildItem(
 	}
 
 	const resolverContext: ResolverContext = { ...linkContext, renderedHtml }
-	const partial = applyResolvers(entry, collectionConfig, config.resolvers, resolverContext)
+	const partial = resolveItem(entry, resolverContext, source.resolve)
 
 	const assembled: Record<string, unknown> = {
 		...partial,
@@ -101,10 +89,12 @@ async function buildItem(
  * returned feed can be serialized via `feed.rss2()`, `feed.atom1()`, or
  * `feed.json1()`.
  *
- * Steps: load and validate eligible entries, build an Astro container for the
- * configured renderers, render and sanitize each entry's HTML, run the resolver
- * chain to produce `Item`s, and finally derive `feedOptions.updated` from the
- * maximum item date when it was not supplied statically.
+ * Steps: load and validate eligible entries per source, build an Astro
+ * container for the configured renderers, render and sanitize each entry's
+ * HTML, run the resolver layers to produce `Item`s, merge items across sources,
+ * apply the top-level `sort` and `limit`, and finally derive
+ * `feedOptions.updated` from the maximum item date when it was not supplied
+ * statically.
  */
 export async function generateFeed(config: FeedConfig): Promise<Feed> {
 	const siteUrl = config.feedOptions.link
@@ -116,7 +106,8 @@ export async function generateFeed(config: FeedConfig): Promise<Feed> {
 	}
 
 	const feed = new Feed(config.feedOptions)
-	const entries = await getFeedContent(config)
+	const sourceGroups = await getFeedContent(config)
+
 	// Skip the AstroContainer (and its renderer dynamic-imports) entirely
 	// when no item will carry rendered content. Resolvers that depend on
 	// `context.renderedHtml` will see an empty string in this mode. The
@@ -145,22 +136,30 @@ export async function generateFeed(config: FeedConfig): Promise<Feed> {
 		render = astroContent.render
 	}
 
-	const itemDates: Date[] = []
-	for (const entry of entries) {
-		const item = await buildItem(entry, config, container, siteUrl, render)
+	const items: Item[] = []
+	for (const group of sourceGroups) {
+		for (const entry of group.entries) {
+			const item = await buildItem(entry, group.source, config, container, siteUrl, render)
+			items.push(item)
+		}
+	}
+
+	const sorted = items.toSorted(config.sort)
+	const limited = sorted.slice(0, config.limit)
+
+	for (const item of limited) {
 		// The `feed` library's `Item` type uses strict-optional fields
 		// (`field?: T`), while the schema-inferred `Item` shape carries
 		// `field?: T | undefined`. Semantically identical; cast at the
 		// library boundary.
 		// eslint-disable-next-line ts/no-unsafe-type-assertion
 		feed.addItem(item as Parameters<typeof feed.addItem>[0])
-		itemDates.push(item.date)
 	}
 
 	// Dynamic resolution: default `updated` to the newest item date when the
 	// user did not supply one. Must happen before the caller serializes.
 	if (feed.options.updated === undefined) {
-		const latest = maxDate(itemDates)
+		const latest = maxDate(limited.map((item) => item.date))
 		if (latest !== undefined) feed.options.updated = latest
 	}
 

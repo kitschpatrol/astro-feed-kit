@@ -6,20 +6,20 @@ import { defineFeedConfig } from './integration/config'
 import { configBridgePlugin, configSymbolKey } from './internal/vite-plugin'
 
 export type {
-	CollectionConfig,
-	EntryResolver,
 	ExcerptBoundary,
 	FeedConfig,
 	FeedConfigInput,
 	FeedFilenames,
 	FeedsInput,
-	ItemResolvers,
 	LinkContext,
+	Resolve,
 	ResolverContext,
+	Source,
+	SourceInput,
 } from './integration/config'
 export { defineFeedConfig, getFeedPath } from './integration/config'
 export { generateFeed } from './integration/feed'
-export { applyResolvers, tagCategoryResolver } from './integration/item-map'
+export { tagCategoryResolver } from './integration/item-map'
 export type { FeedEligibleEntry, Item } from './integration/schemas'
 export {
 	AuthorSchema,

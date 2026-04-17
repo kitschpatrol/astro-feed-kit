@@ -1,5 +1,5 @@
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import type { CollectionConfig, EntryResolver, ItemResolvers, ResolverContext } from './config'
+import type { Resolve, ResolverContext } from './config'
 import type { Item } from './schemas'
 
 function slugify(text: string): string {
@@ -17,113 +17,128 @@ function ensureTrailingSlash(value: string): string {
 
 function readField(data: unknown, key: string): unknown {
 	if (typeof data !== 'object' || data === null) return undefined
-	// Narrowed to a non-null object; string-resolver lookups read fields by
-	// name regardless of the entry's declared schema.
+	// Narrowed to a non-null object; default resolvers read common fields by
+	// name across arbitrary collection schemas.
 	// eslint-disable-next-line ts/no-unsafe-type-assertion
 	return (data as Record<string, unknown>)[key]
 }
 
-function evaluateResolver(
-	resolver: EntryResolver<unknown>,
-	entry: CollectionEntry<CollectionKey>,
-	context: ResolverContext,
-): unknown {
-	if (typeof resolver === 'string') {
-		return readField(entry.data, resolver)
+function asString(value: unknown): string | undefined {
+	return typeof value === 'string' ? value : undefined
+}
+
+function asDate(value: unknown): Date | undefined {
+	if (value instanceof Date) return value
+	if (typeof value === 'string' || typeof value === 'number') {
+		const date = new Date(value)
+		if (!Number.isNaN(date.getTime())) return date
 	}
-	if (typeof resolver === 'function') {
-		return resolver(entry, context)
-	}
-	return resolver.transform(readField(entry.data, resolver.from), context)
+	return undefined
+}
+
+function categoryFromTags(value: unknown): Item['category'] | undefined {
+	if (!Array.isArray(value)) return undefined
+	const tags = value.filter((tag): tag is string => typeof tag === 'string')
+	if (tags.length === 0) return undefined
+	return tags.map((name) => ({ name, term: slugify(name) }))
 }
 
 /**
- * Built-in default resolvers. Chosen to match the common Astro content
- * frontmatter conventions (`title`, `date`, `description`, `tags`) and to
- * populate `content` from the sanitized, rendered HTML passed through
- * `ResolverContext`.
+ * Built-in item defaults. Produces a `Partial<Item>` from the common Astro
+ * frontmatter conventions (`title`, `date`, `description`, `tags`) plus the
+ * sanitized rendered HTML from `context`.
  *
- * The category resolver intentionally emits `{name, term}` only — no
- * `domain`. Sites that want per-tag URLs in the feed should supply
- * `tagCategoryResolver({basePath})` as a top-level or per-collection
- * override.
+ * The category default intentionally emits `{name, term}` only — no `domain`.
+ * Sites that want per-tag URLs in the feed should spread
+ * `tagCategoryResolver({basePath})(entry, context)` inside their own
+ * `Source.resolve`.
  */
-const DEFAULT_RESOLVERS: ItemResolvers = {
-	category: {
-		from: 'tags',
-		transform(value) {
-			if (!Array.isArray(value)) return
-			const tags = value.filter((tag): tag is string => typeof tag === 'string')
-			if (tags.length === 0) return
-			return tags.map((name) => ({ name, term: slugify(name) }))
-		},
-	},
-	content: (_, context) => context.renderedHtml,
-	date: 'date',
-	description: 'description',
-	published: 'date',
-	title: 'title',
-}
-
-/**
- * Apply the resolver chain for a single entry. Precedence, high to low:
- *
- * 1. `collectionConfig.resolvers[key]` — per-collection override
- * 2. `topLevelResolvers[key]` — site-wide override from `FeedConfig.resolvers`
- * 3. `DEFAULT_RESOLVERS[key]` — built-in
- *
- * Resolvers returning `undefined` are treated as "no value" and the
- * corresponding field is omitted from the returned partial item.
- */
-export function applyResolvers(
+export function defaultResolve(
 	entry: CollectionEntry<CollectionKey>,
-	collectionConfig: CollectionConfig,
-	topLevelResolvers: ItemResolvers,
 	context: ResolverContext,
 ): Partial<Item> {
-	const allKeys = new Set<keyof Item>([
-		...Object.keys(DEFAULT_RESOLVERS),
-		...Object.keys(topLevelResolvers),
-		...Object.keys(collectionConfig.resolvers ?? {}),
-	])
+	const { data } = entry
+	const title = asString(readField(data, 'title'))
+	const date = asDate(readField(data, 'date'))
+	const description = asString(readField(data, 'description'))
+	const category = categoryFromTags(readField(data, 'tags'))
 
-	const result: Record<string, unknown> = {}
-	for (const key of allKeys) {
-		const resolver =
-			collectionConfig.resolvers?.[key] ?? topLevelResolvers[key] ?? DEFAULT_RESOLVERS[key]
-		if (resolver === undefined) continue
-		const value = evaluateResolver(resolver, entry, context)
-		if (value !== undefined) {
-			result[key] = value
-		}
+	const result: Partial<Item> = {}
+	if (title !== undefined) result.title = title
+	if (date !== undefined) {
+		result.date = date
+		result.published = date
 	}
-	return result as Partial<Item>
+	if (description !== undefined) result.description = description
+	if (category !== undefined) result.category = category
+	if (context.renderedHtml !== '') result.content = context.renderedHtml
+	return result
 }
 
 /**
- * Build a category resolver that emits `{name, term, domain}` with a
- * per-tag URL derived from `basePath` and the site URL in the resolver
- * context. Use this on sites that route tag pages under a stable URL
- * prefix — for example `tagCategoryResolver({basePath: '/tags/'})`.
+ * Merge a lower-priority partial with a higher-priority partial, skipping
+ * keys whose value on the higher-priority side is `undefined`. This is what
+ * gives a user's `resolve` the freedom to override only the fields they care
+ * about while leaving defaults intact.
+ */
+function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Partial<Item> {
+	const merged: Partial<Item> = { ...lower }
+	for (const [key, value] of Object.entries(higher)) {
+		if (value === undefined)
+			continue
+			// The Item type has narrow per-key value types; the loop widens them,
+			// and we reassign back via the same key. Safe within this function.
+		;(merged as Record<string, unknown>)[key] = value
+	}
+	return merged
+}
+
+/**
+ * Resolve the partial item for one entry. Starts from `defaultResolve`'s
+ * baseline and layers `source.resolve` on top, skipping keys the user's
+ * resolver returned as `undefined`.
+ */
+export function resolveItem(
+	entry: CollectionEntry<CollectionKey>,
+	context: ResolverContext,
+	sourceResolve?: Resolve,
+): Partial<Item> {
+	const base = defaultResolve(entry, context)
+	if (sourceResolve === undefined) return base
+	return mergeSkippingUndefined(base, sourceResolve(entry, context))
+}
+
+/**
+ * Build a helper that produces a `{category}` partial with per-tag URLs
+ * derived from `basePath` and the site URL in the resolver context. Spread
+ * the result inside a source's `resolve`:
+ *
+ * @example
+ * 	resolve: (entry, context) => ({
+ * 		...tagCategoryResolver({ basePath: '/tags/' })(entry, context),
+ * 	})
  */
 export function tagCategoryResolver(options: {
 	basePath: string
-}): EntryResolver<Item['category']> {
-	return {
-		from: 'tags',
-		transform(value, context) {
-			if (!Array.isArray(value)) return
-			const tags = value.filter((tag): tag is string => typeof tag === 'string')
-			if (tags.length === 0) return
-			const base = new URL(options.basePath, ensureTrailingSlash(context.siteUrl)).toString()
-			return tags.map((name) => {
+}): (
+	entry: CollectionEntry<CollectionKey>,
+	context: ResolverContext,
+) => { category?: Item['category'] } {
+	return (entry, context) => {
+		const value = readField(entry.data, 'tags')
+		if (!Array.isArray(value)) return {}
+		const tags = value.filter((tag): tag is string => typeof tag === 'string')
+		if (tags.length === 0) return {}
+		const base = new URL(options.basePath, ensureTrailingSlash(context.siteUrl)).toString()
+		return {
+			category: tags.map((name) => {
 				const term = slugify(name)
 				return {
 					domain: new URL(term, ensureTrailingSlash(base)).toString(),
 					name,
 					term,
 				}
-			})
-		},
+			}),
+		}
 	}
 }
