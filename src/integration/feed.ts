@@ -4,7 +4,7 @@ import { Feed } from 'feed'
 import type { FeedConfig, LinkContext, ResolverContext } from './config'
 import type { Item } from './schemas'
 import { getFeedContent } from './collection'
-import { createContainer } from './container'
+import { createContainer, resolveContainerRenderers } from './container'
 import { applyResolvers } from './item-map'
 import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
@@ -122,9 +122,25 @@ export async function generateFeed(config: FeedConfig): Promise<Feed> {
 	// `context.renderedHtml` will see an empty string in this mode. The
 	// `astro:content` virtual module is also only needed for content
 	// rendering, so we lazy-load it here.
-	const container = config.includeContent ? await createContainer(config.knownRenderers) : undefined
+	let container: Awaited<ReturnType<typeof createContainer>> | undefined
 	let render: AstroContentRender | undefined
 	if (config.includeContent) {
+		// Three-layer renderer resolution:
+		//   1. Explicit `renderers` input — used verbatim, no probing.
+		//   2. Integration wiring — `projectRoot` was captured at
+		//      `astro:config:setup` from `astroConfig.root`, Astro's
+		//      canonical resolved project URL. Probing anchored there works
+		//      regardless of how `astro-feed-kit` itself is installed.
+		//   3. Standalone — fall back to `process.cwd()`. Brittle for
+		//      exotic layouts; callers who care should pass `renderers`.
+		const renderers =
+			config.renderers.length > 0
+				? config.renderers
+				: await resolveContainerRenderers(
+						config.knownRenderers,
+						config.projectRoot ?? process.cwd(),
+					)
+		container = await createContainer(renderers)
 		const astroContent = await import('astro:content')
 		render = astroContent.render
 	}

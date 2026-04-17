@@ -74,6 +74,15 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 				const inputWithLink = ensureFeedLink(input, astroConfig.site)
 
 				const resolved = defineFeedConfig(inputWithLink)
+
+				// Capture Astro's canonical project root so endpoint-time
+				// renderer probing resolves bare specifiers against the
+				// consumer's `node_modules`, not against wherever
+				// `astro-feed-kit` happens to be installed or linked. We do
+				// NOT probe here — this hook runs inside Astro's Vite
+				// config-loading module runner, and its lifecycle doesn't
+				// reliably cover `await import(...)` calls during `astro check`.
+				resolved.projectRoot = fileURLToPath(astroConfig.root)
 				;(globalThis as Record<symbol, unknown>)[Symbol.for(configSymbolKey(instanceId))] = resolved
 
 				updateConfig({

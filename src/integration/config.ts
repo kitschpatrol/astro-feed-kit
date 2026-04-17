@@ -1,3 +1,4 @@
+import type { AstroRenderer } from 'astro'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import type { FeedOptions } from 'feed'
 import type { Item } from './schemas'
@@ -114,6 +115,15 @@ export type FeedConfigInput = {
 	 * empty string.
 	 */
 	includeContent?: boolean
+	/**
+	 * Package names to probe for Astro renderers when `renderers` is not
+	 * explicitly supplied. Each package is imported and its
+	 * `getContainerRenderer()` export is called; packages that aren't
+	 * installed are skipped. Defaults cover the first-party Astro renderers
+	 * (`@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`,
+	 * `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit`). Ignored entirely
+	 * when `renderers` is provided.
+	 */
 	knownRenderers?: string[]
 	/**
 	 * Maximum number of items included in the generated feed, applied after
@@ -122,6 +132,19 @@ export type FeedConfigInput = {
 	 * history).
 	 */
 	limit?: number
+	/**
+	 * Explicit list of Astro renderers to load into the content-rendering
+	 * container, matching the shape consumed by `loadRenderers` from
+	 * `astro:container`. When supplied, `knownRenderers` probing is skipped
+	 * entirely — this is the escape hatch for exotic layouts (custom
+	 * resolvers, non-standard installs, monorepos) and the recommended path
+	 * when calling `generateFeed` outside the integration pipeline.
+	 *
+	 * @example
+	 *   import { getContainerRenderer as mdxRenderer } from '@astrojs/mdx'
+	 *   feedKit({ renderers: [mdxRenderer()], ... })
+	 */
+	renderers?: AstroRenderer[]
 	resolvers?: ItemResolvers
 	sort?: (a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number
 }
@@ -141,6 +164,24 @@ export type FeedConfig = {
 	includeContent: boolean
 	knownRenderers: string[]
 	limit: number
+	/**
+	 * Absolute filesystem path to the consumer's project root. Populated by
+	 * the integration from `astroConfig.root` so endpoint-time renderer
+	 * probing resolves bare specifiers against the consumer's
+	 * `node_modules`, regardless of where `astro-feed-kit` itself is
+	 * installed or linked. `undefined` for standalone `generateFeed`
+	 * callers who bypass the integration; the probe then falls back to
+	 * `process.cwd()`.
+	 */
+	projectRoot?: string
+	/**
+	 * Renderers to load into the content-rendering container. When empty,
+	 * `generateFeed` probes `knownRenderers` at request time (anchored at
+	 * `projectRoot` when present, `process.cwd()` otherwise). Supply this
+	 * explicitly to skip probing entirely — recommended for standalone
+	 * callers and for exotic install layouts.
+	 */
+	renderers: AstroRenderer[]
 	resolvers: ItemResolvers
 	sort?:
 		| ((a: CollectionEntry<CollectionKey>, b: CollectionEntry<CollectionKey>) => number)
@@ -227,6 +268,7 @@ export function defineFeedConfig(input: FeedConfigInput): FeedConfig {
 		includeContent: input.includeContent ?? true,
 		knownRenderers,
 		limit: input.limit ?? DEFAULT_LIMIT,
+		renderers: input.renderers ?? [],
 		resolvers: input.resolvers ?? {},
 		sort: input.sort,
 	}
