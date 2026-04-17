@@ -1,11 +1,11 @@
 import type * as AstroContent from 'astro:content'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import { Feed } from 'feed'
-import type { FeedConfig, LinkContext, ResolverContext, Source } from './config'
+import type { ItemResolverContext, LinkContext, ResolvedFeedKitConfig, Source } from './config'
 import type { Item } from './schemas'
 import { getFeedContent } from './collection'
 import { createContainer, resolveContainerRenderers } from './container'
-import { resolveItem } from './item-map'
+import { resolveItemFields } from './item-map'
 import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
 
@@ -38,7 +38,7 @@ function maxDate(dates: Date[]): Date | undefined {
 async function buildItem(
 	entry: CollectionEntry<CollectionKey>,
 	source: Source,
-	config: FeedConfig,
+	config: ResolvedFeedKitConfig,
 	container: Awaited<ReturnType<typeof createContainer>> | undefined,
 	siteUrl: string,
 	render: AstroContentRender | undefined,
@@ -61,8 +61,8 @@ async function buildItem(
 		renderedHtml = await sanitizeHtml(rawHtml, link, config.excerptBoundary)
 	}
 
-	const resolverContext: ResolverContext = { ...linkContext, renderedHtml }
-	const partial = resolveItem(entry, resolverContext, source.resolve)
+	const resolverContext: ItemResolverContext = { ...linkContext, renderedHtml }
+	const partial = resolveItemFields(entry, resolverContext, source.resolveItem)
 
 	const assembled: Record<string, unknown> = {
 		...partial,
@@ -85,7 +85,7 @@ async function buildItem(
 }
 
 /**
- * Generate a populated `Feed` instance from a resolved `FeedConfig`. The
+ * Generate a populated `Feed` instance from a `ResolvedFeedKitConfig`. The
  * returned feed can be serialized via `feed.rss2()`, `feed.atom1()`, or
  * `feed.json1()`.
  *
@@ -96,7 +96,7 @@ async function buildItem(
  * `feedOptions.updated` from the maximum item date when it was not supplied
  * statically.
  */
-export async function generateFeed(config: FeedConfig): Promise<Feed> {
+export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed> {
 	const siteUrl = config.feedOptions.link
 	if (siteUrl === undefined) {
 		throw new Error(

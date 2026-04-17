@@ -15,7 +15,7 @@ export default defineConfig({
 				'posts',
 				{
 					collection: 'notes',
-					resolve(entry) {
+					resolveItem(entry) {
 						const data = entry.data as Record<string, unknown>
 						const { categories } = data
 						const description = data.summary

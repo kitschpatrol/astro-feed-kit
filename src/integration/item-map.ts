@@ -1,5 +1,5 @@
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import type { Resolve, ResolverContext } from './config'
+import type { ItemResolver, ItemResolverContext } from './config'
 import type { Item } from './schemas'
 
 function slugify(text: string): string {
@@ -46,16 +46,17 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
 /**
  * Built-in item defaults. Produces a `Partial<Item>` from the common Astro
  * frontmatter conventions (`title`, `date`, `description`, `tags`) plus the
- * sanitized rendered HTML from `context`.
+ * sanitized rendered HTML from `context`. This is the baseline that a user's
+ * `Source.resolveItem` overlay merges on top of.
  *
  * The category default intentionally emits `{name, term}` only — no `domain`.
  * Sites that want per-tag URLs in the feed should spread
  * `tagCategoryResolver({basePath})(entry, context)` inside their own
- * `Source.resolve`.
+ * `Source.resolveItem`.
  */
-export function defaultResolve(
+export function defaultItemResolver(
 	entry: CollectionEntry<CollectionKey>,
-	context: ResolverContext,
+	context: ItemResolverContext,
 ): Partial<Item> {
 	const { data } = entry
 	const title = asString(readField(data, 'title'))
@@ -78,8 +79,8 @@ export function defaultResolve(
 /**
  * Merge a lower-priority partial with a higher-priority partial, skipping
  * keys whose value on the higher-priority side is `undefined`. This is what
- * gives a user's `resolve` the freedom to override only the fields they care
- * about while leaving defaults intact.
+ * gives a user's `resolveItem` the freedom to override only the fields they
+ * care about while leaving defaults intact.
  */
 function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Partial<Item> {
 	const merged: Partial<Item> = { ...lower }
@@ -94,27 +95,27 @@ function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Pa
 }
 
 /**
- * Resolve the partial item for one entry. Starts from `defaultResolve`'s
- * baseline and layers `source.resolve` on top, skipping keys the user's
- * resolver returned as `undefined`.
+ * Resolve the partial item fields for one entry. Starts from
+ * `defaultItemResolver`'s baseline and layers `source.resolveItem` on top,
+ * skipping keys the user's resolver returned as `undefined`.
  */
-export function resolveItem(
+export function resolveItemFields(
 	entry: CollectionEntry<CollectionKey>,
-	context: ResolverContext,
-	sourceResolve?: Resolve,
+	context: ItemResolverContext,
+	sourceResolveItem?: ItemResolver,
 ): Partial<Item> {
-	const base = defaultResolve(entry, context)
-	if (sourceResolve === undefined) return base
-	return mergeSkippingUndefined(base, sourceResolve(entry, context))
+	const base = defaultItemResolver(entry, context)
+	if (sourceResolveItem === undefined) return base
+	return mergeSkippingUndefined(base, sourceResolveItem(entry, context))
 }
 
 /**
  * Build a helper that produces a `{category}` partial with per-tag URLs
  * derived from `basePath` and the site URL in the resolver context. Spread
- * the result inside a source's `resolve`:
+ * the result inside a source's `resolveItem`:
  *
  * @example
- * 	resolve: (entry, context) => ({
+ * 	resolveItem: (entry, context) => ({
  * 		...tagCategoryResolver({ basePath: '/tags/' })(entry, context),
  * 	})
  */
@@ -122,7 +123,7 @@ export function tagCategoryResolver(options: {
 	basePath: string
 }): (
 	entry: CollectionEntry<CollectionKey>,
-	context: ResolverContext,
+	context: ItemResolverContext,
 ) => { category?: Item['category'] } {
 	return (entry, context) => {
 		const value = readField(entry.data, 'tags')

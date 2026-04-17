@@ -8,7 +8,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Item } from '../src/integration/schemas'
-import { defineFeedConfig } from '../src/integration/config'
+import { defineFeedKitConfig } from '../src/integration/config'
 import { generateFeed } from '../src/integration/feed'
 
 type FakeEntry = {
@@ -56,7 +56,7 @@ describe('pipeline: per-source behavior', () => {
 			entry('notes', 'c', { archived: true, date: new Date('2026-03-01'), title: 'C' }),
 		])
 
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
@@ -84,7 +84,7 @@ describe('pipeline: per-source behavior', () => {
 			entry('posts', 'p3', { date: new Date('2026-03-01'), title: 'P3' }),
 		])
 
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
@@ -108,7 +108,7 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 		setCollection('notes', [entry('notes', 'n1', { date: new Date('2026-02-01'), title: 'N1' })])
 
 		let seenItemShape: Item | undefined
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sort(a, b) {
@@ -138,7 +138,7 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 			entry('notes', 'n2', { date: new Date('2026-04-01'), title: 'N2' }),
 		])
 
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			limit: 2,
@@ -153,8 +153,8 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 	})
 })
 
-describe('pipeline: per-source resolve', () => {
-	it('per-source resolve output replaces fields the default filled in', async () => {
+describe('pipeline: per-source resolveItem', () => {
+	it('per-source resolveItem output replaces fields the default filled in', async () => {
 		setCollection('posts', [
 			entry('posts', 'p1', {
 				date: new Date('2026-01-01'),
@@ -163,13 +163,13 @@ describe('pipeline: per-source resolve', () => {
 			}),
 		])
 
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: [
 				{
 					collection: 'posts',
-					resolve: (entry) => ({
+					resolveItem: (entry) => ({
 						description: (entry.data as Record<string, unknown>).summary as string,
 					}),
 				},
@@ -184,7 +184,7 @@ describe('pipeline: per-source resolve', () => {
 	it('string shorthand sources expand to default behavior', async () => {
 		setCollection('posts', [entry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' })])
 
-		const config = defineFeedConfig({
+		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,
 			includeContent: false,
 			sources: ['posts'],

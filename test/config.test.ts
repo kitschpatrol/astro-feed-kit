@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultItemSort, defineFeedConfig, getFeedPath } from '../src/integration/config'
+import { defaultItemSort, defineFeedKitConfig, getFeedPath } from '../src/integration/config'
 
 const linkFn = (): string => 'https://example.com/posts/x'
 
@@ -12,10 +12,10 @@ const baseInput = {
 	sources: [{ collection: 'posts', link: () => 'https://example.com/posts/x' }],
 }
 
-describe('defineFeedConfig', () => {
-	it('applies default feeds (rss.xml / atom.xml / feed.json) and limit (25)', () => {
-		const resolved = defineFeedConfig(baseInput)
-		expect(resolved.feeds).toEqual({
+describe('defineFeedKitConfig', () => {
+	it('applies default formats (rss.xml / atom.xml / feed.json) and limit (25)', () => {
+		const resolved = defineFeedKitConfig(baseInput)
+		expect(resolved.formats).toEqual({
 			atom: 'atom.xml',
 			json: 'feed.json',
 			rss: 'rss.xml',
@@ -24,43 +24,43 @@ describe('defineFeedConfig', () => {
 	})
 
 	it('defaults excerptBoundary to {comment: "excerpt"}', () => {
-		const resolved = defineFeedConfig(baseInput)
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.excerptBoundary).toEqual({ comment: 'excerpt' })
 	})
 
 	it('defaults includeContent to true', () => {
-		const resolved = defineFeedConfig(baseInput)
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.includeContent).toBe(true)
 	})
 
 	it('defaults sort to the built-in date-desc item sort', () => {
-		const resolved = defineFeedConfig(baseInput)
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.sort).toBe(defaultItemSort)
 	})
 
-	it('respects user overrides for feeds, limit, excerptBoundary, includeContent', () => {
-		const resolved = defineFeedConfig({
+	it('respects user overrides for formats, limit, excerptBoundary, includeContent', () => {
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			excerptBoundary: false,
-			feeds: { atom: 'a.xml', rss: 'r.xml' },
+			formats: { atom: 'a.xml', rss: 'r.xml' },
 			includeContent: false,
 			limit: 5,
 		})
-		expect(resolved.feeds.rss).toBe('r.xml')
-		expect(resolved.feeds.atom).toBe('a.xml')
-		expect(resolved.feeds.json).toBe('feed.json') // Default fills in missing
+		expect(resolved.formats.rss).toBe('r.xml')
+		expect(resolved.formats.atom).toBe('a.xml')
+		expect(resolved.formats.json).toBe('feed.json') // Default fills in missing
 		expect(resolved.limit).toBe(5)
 		expect(resolved.excerptBoundary).toBe(false)
 		expect(resolved.includeContent).toBe(false)
 	})
 
 	it('normalizes string source shorthand to {collection}', () => {
-		const resolved = defineFeedConfig({ ...baseInput, sources: ['posts', 'notes'] })
+		const resolved = defineFeedKitConfig({ ...baseInput, sources: ['posts', 'notes'] })
 		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes' }])
 	})
 
 	it('preserves object source descriptors', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			sources: [{ collection: 'posts', limit: 5, link: linkFn }],
 		})
@@ -68,15 +68,15 @@ describe('defineFeedConfig', () => {
 	})
 
 	it('accepts a mix of string and descriptor sources', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			sources: ['posts', { collection: 'notes', limit: 10 }],
 		})
 		expect(resolved.sources).toEqual([{ collection: 'posts' }, { collection: 'notes', limit: 10 }])
 	})
 
-	it('derives feedLinks from siteLink and feeds', () => {
-		const resolved = defineFeedConfig(baseInput)
+	it('derives feedLinks from siteLink and formats', () => {
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.feedOptions.feedLinks).toEqual({
 			atom: 'https://example.com/atom.xml',
 			json: 'https://example.com/feed.json',
@@ -84,31 +84,31 @@ describe('defineFeedConfig', () => {
 		})
 	})
 
-	it('reflects custom feeds filenames in derived feedLinks', () => {
-		const resolved = defineFeedConfig({
+	it('reflects custom format filenames in derived feedLinks', () => {
+		const resolved = defineFeedKitConfig({
 			...baseInput,
-			feeds: { rss: 'feed.xml' },
+			formats: { rss: 'feed.xml' },
 		})
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/feed.xml')
 		expect(resolved.feedOptions.feed).toBe('https://example.com/feed.xml')
 	})
 
 	it('handles trailing slash on siteLink without producing double slashes', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			feedOptions: { ...baseInput.feedOptions, link: 'https://example.com/' },
 		})
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/rss.xml')
 	})
 
-	it('defaults id from siteLink and derives feed from siteLink + feeds.rss', () => {
-		const resolved = defineFeedConfig(baseInput)
+	it('defaults id from siteLink and derives feed from siteLink + formats.rss', () => {
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.feedOptions.id).toBe('https://example.com')
 		expect(resolved.feedOptions.feed).toBe('https://example.com/rss.xml')
 	})
 
 	it('omits feedLinks, feed, and id when siteLink is absent', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			feedOptions: { description: 'd', title: 't' },
 		})
@@ -117,40 +117,40 @@ describe('defineFeedConfig', () => {
 		expect(resolved.feedOptions.id).toBeUndefined()
 	})
 
-	it('disables a feed format when feeds[kind] is false', () => {
-		const resolved = defineFeedConfig({
+	it('disables a feed format when formats[kind] is false', () => {
+		const resolved = defineFeedKitConfig({
 			...baseInput,
-			feeds: { atom: false, rss: 'feed.xml' },
+			formats: { atom: false, rss: 'feed.xml' },
 		})
-		expect(resolved.feeds.atom).toBeUndefined()
-		expect(resolved.feeds.rss).toBe('feed.xml')
-		expect(resolved.feeds.json).toBe('feed.json')
+		expect(resolved.formats.atom).toBeUndefined()
+		expect(resolved.formats.rss).toBe('feed.xml')
+		expect(resolved.formats.json).toBe('feed.json')
 		expect(resolved.feedOptions.feedLinks?.atom).toBeUndefined()
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/feed.xml')
 		expect(resolved.feedOptions.feedLinks?.json).toBe('https://example.com/feed.json')
 	})
 
-	it('treats feeds[kind] === true as the default filename', () => {
-		const resolved = defineFeedConfig({
+	it('treats formats[kind] === true as the default filename', () => {
+		const resolved = defineFeedKitConfig({
 			...baseInput,
-			feeds: { atom: true, rss: true },
+			formats: { atom: true, rss: true },
 		})
-		expect(resolved.feeds.atom).toBe('atom.xml')
-		expect(resolved.feeds.rss).toBe('rss.xml')
+		expect(resolved.formats.atom).toBe('atom.xml')
+		expect(resolved.formats.rss).toBe('rss.xml')
 	})
 
 	it('omits feedOptions.feed when rss is disabled', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
-			feeds: { rss: false },
+			formats: { rss: false },
 		})
-		expect(resolved.feeds.rss).toBeUndefined()
+		expect(resolved.formats.rss).toBeUndefined()
 		expect(resolved.feedOptions.feed).toBeUndefined()
 		expect(resolved.feedOptions.feedLinks?.rss).toBeUndefined()
 	})
 
 	it('merges DEFAULT_KNOWN_RENDERERS with user-supplied list, deduped', () => {
-		const resolved = defineFeedConfig({
+		const resolved = defineFeedKitConfig({
 			...baseInput,
 			knownRenderers: ['@astrojs/mdx', 'custom-renderer'],
 		})
@@ -163,19 +163,19 @@ describe('defineFeedConfig', () => {
 
 describe('getFeedPath', () => {
 	it('returns the configured filename prefixed with /', () => {
-		const resolved = defineFeedConfig(baseInput)
+		const resolved = defineFeedKitConfig(baseInput)
 		expect(getFeedPath(resolved, 'rss')).toBe('/rss.xml')
 		expect(getFeedPath(resolved, 'atom')).toBe('/atom.xml')
 		expect(getFeedPath(resolved, 'json')).toBe('/feed.json')
 	})
 
 	it('reflects user-supplied feed filenames', () => {
-		const resolved = defineFeedConfig({ ...baseInput, feeds: { rss: 'feed.rss' } })
+		const resolved = defineFeedKitConfig({ ...baseInput, formats: { rss: 'feed.rss' } })
 		expect(getFeedPath(resolved, 'rss')).toBe('/feed.rss')
 	})
 
 	it('returns undefined for disabled formats', () => {
-		const resolved = defineFeedConfig({ ...baseInput, feeds: { json: false } })
+		const resolved = defineFeedKitConfig({ ...baseInput, formats: { json: false } })
 		expect(getFeedPath(resolved, 'json')).toBeUndefined()
 		expect(getFeedPath(resolved, 'rss')).toBe('/rss.xml')
 	})

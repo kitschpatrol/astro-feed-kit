@@ -1,5 +1,5 @@
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import type { FeedConfig, Source } from './config'
+import type { ResolvedFeedKitConfig, Source } from './config'
 import { FeedEligibleEntrySchema } from './schemas'
 
 function readField(data: unknown, key: string): unknown {
@@ -48,7 +48,7 @@ export type SourceEntries = {
  * Returns one group per source; merging and the final item-level sort/limit
  * happen in `feed.ts` after resolvers run.
  */
-export async function getFeedContent(config: FeedConfig): Promise<SourceEntries[]> {
+export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<SourceEntries[]> {
 	// `astro:content` is a Vite virtual module — dynamically imported here so
 	// the package's barrel can be safely loaded from `astro.config.ts` (where
 	// Vite hasn't booted yet) without crashing.

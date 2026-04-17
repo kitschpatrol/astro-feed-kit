@@ -1,23 +1,23 @@
 import type { AstroIntegration } from 'astro'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import type { FeedConfigInput, FeedFilenames } from './integration/config'
-import { defineFeedConfig } from './integration/config'
+import type { FeedKitConfig, FormatFilenames } from './integration/config'
+import { defineFeedKitConfig } from './integration/config'
 import { configBridgePlugin, configSymbolKey } from './internal/vite-plugin'
 
 export type {
 	ExcerptBoundary,
-	FeedConfig,
-	FeedConfigInput,
-	FeedFilenames,
-	FeedsInput,
+	FeedKitConfig,
+	FormatFilenames,
+	FormatsInput,
+	ItemResolver,
+	ItemResolverContext,
 	LinkContext,
-	Resolve,
-	ResolverContext,
+	ResolvedFeedKitConfig,
 	Source,
 	SourceInput,
 } from './integration/config'
-export { defineFeedConfig, getFeedPath } from './integration/config'
+export { defineFeedKitConfig, getFeedPath } from './integration/config'
 export { generateFeed } from './integration/feed'
 export { tagCategoryResolver } from './integration/item-map'
 export type { FeedEligibleEntry, Item } from './integration/schemas'
@@ -30,17 +30,19 @@ export {
 	ItemSchema,
 } from './integration/schemas'
 
-const ENDPOINT_FILES: Record<keyof FeedFilenames, string> = {
+const ENDPOINT_FILES: Record<keyof FormatFilenames, string> = {
 	atom: './internal/endpoints/atom.ts',
 	json: './internal/endpoints/json.ts',
 	rss: './internal/endpoints/rss.ts',
 }
 
 // Typed key list drives the endpoint injection loop. Declaring the tuple
-// literal with `satisfies` preserves the narrow `keyof FeedFilenames` element
-// type without asserting through `Object.entries`, which returns
+// literal with `satisfies` preserves the narrow `keyof FormatFilenames`
+// element type without asserting through `Object.entries`, which returns
 // `[string, string][]`.
-const ENDPOINT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<keyof FeedFilenames>
+const ENDPOINT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<
+	keyof FormatFilenames
+>
 
 /**
  * Astro integration that wires three prerendered feed endpoints (RSS, Atom,
@@ -53,7 +55,7 @@ const ENDPOINT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<
  * slot — both the integration and the Vite-loaded endpoints run in the same
  * Node process.
  */
-export default function feedKit(input: FeedConfigInput): AstroIntegration {
+export default function feedKit(input: FeedKitConfig): AstroIntegration {
 	const instanceId = randomUUID()
 
 	return {
@@ -61,7 +63,7 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 			'astro:config:done'({ injectTypes }) {
 				injectTypes({
 					content: `declare module 'virtual:astro-feed-kit/config' {
-	const config: import('astro-feed-kit').FeedConfig
+	const config: import('astro-feed-kit').ResolvedFeedKitConfig
 	export default config
 }
 `,
@@ -74,7 +76,7 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 				// endpoint time) so misconfiguration is caught at build start.
 				const inputWithLink = ensureFeedLink(input, astroConfig.site)
 
-				const resolved = defineFeedConfig(inputWithLink)
+				const resolved = defineFeedKitConfig(inputWithLink)
 
 				// Capture Astro's canonical project root so endpoint-time
 				// renderer probing resolves bare specifiers against the
@@ -94,7 +96,7 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 
 				const mountedPaths: string[] = []
 				for (const kind of ENDPOINT_KINDS) {
-					const filename = resolved.feeds[kind]
+					const filename = resolved.formats[kind]
 					if (filename === undefined) continue
 					const entrypoint = fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url))
 					injectRoute({
@@ -107,7 +109,7 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 
 				if (mountedPaths.length === 0) {
 					logger.warn(
-						'all feed formats are disabled in `feeds` — no routes injected and <FeedKit /> will render nothing',
+						'all feed formats are disabled in `formats` — no routes injected and <FeedKit /> will render nothing',
 					)
 				} else {
 					logger.info(`mounted feed endpoints: ${mountedPaths.join(', ')}`)
@@ -118,7 +120,7 @@ export default function feedKit(input: FeedConfigInput): AstroIntegration {
 	}
 }
 
-function ensureFeedLink(input: FeedConfigInput, astroSite: string | undefined): FeedConfigInput {
+function ensureFeedLink(input: FeedKitConfig, astroSite: string | undefined): FeedKitConfig {
 	if (input.feedOptions.link !== undefined) return input
 	if (astroSite === undefined) {
 		throw new Error(
