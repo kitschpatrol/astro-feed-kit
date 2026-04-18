@@ -63,7 +63,7 @@
 		"@kitschpatrol/shared-config": "^7.4.1",
 		"@types/hast": "3.0.4",
 		"@types/node": "~24.12.2",
-		"astro": "^6.1.7",
+		"astro": "^6.1.8",
 		"bumpp": "^11.0.1",
 		"hast-util-sanitize": "5.0.2",
 		"node-addon-api": "^8.7.0",

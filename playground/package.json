@@ -21,7 +21,7 @@
 		"@astrojs/check": "^0.9.8",
 		"@astrojs/mdx": "^5.0.3",
 		"@types/node": "~25.5.2",
-		"astro": "^6.1.7",
+		"astro": "^6.1.8",
 		"astro-feed-kit": "link:..",
 		"poptab": "^1.1.0",
 		"sharp": "^0.34.5",
