@@ -17,6 +17,16 @@ import { ItemSchema } from './schemas'
  */
 type AstroContentRender = typeof AstroContent.render
 
+/**
+ * Upper bound on concurrent `buildItem` calls. The per-item pipeline is
+ * CPU-bound (linkedom parse → Defuddle → unified) but async boundaries let
+ * the event loop interleave work, and the `AstroContainer` is reentrant —
+ * concurrent `renderToString` calls are how Astro's own SSR path already
+ * runs. Eight is a deliberate cap: past that, resident memory during large
+ * feed generation grows faster than throughput improves.
+ */
+const MAX_CONCURRENCY = 8
+
 function maxDate(dates: Date[]): Date | undefined {
 	if (dates.length === 0) return undefined
 	let max = dates[0]!
@@ -24,6 +34,46 @@ function maxDate(dates: Date[]): Date | undefined {
 		if (date.getTime() > max.getTime()) max = date
 	}
 	return max
+}
+
+/**
+ * Run `fn` over `items` with at most `concurrency` tasks in flight. Results
+ * are written into their original index, so the returned array mirrors the
+ * input order regardless of task-completion order — important because the
+ * default merged-item sort is stable, and callers rely on deterministic
+ * output for equal sort keys.
+ *
+ * Fail-fast: the first rejection stops new tasks from starting and
+ * propagates out. In-flight tasks run to completion (they can't be
+ * cancelled), but no further work is dispatched.
+ */
+async function mapConcurrent<T, R>(
+	items: readonly T[],
+	concurrency: number,
+	fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+	const results = Array.from<R>({ length: items.length })
+	const workerCount = Math.min(concurrency, items.length)
+	let cursor = 0
+	let failed = false
+
+	async function worker(): Promise<void> {
+		while (!failed) {
+			const index = cursor++
+			if (index >= items.length) return
+			try {
+				results[index] = await fn(items[index]!)
+			} catch (error) {
+				failed = true
+				throw error
+			}
+		}
+	}
+
+	const workers: Array<Promise<void>> = []
+	for (let w = 0; w < workerCount; w += 1) workers.push(worker())
+	await Promise.all(workers)
+	return results
 }
 
 /**
@@ -136,13 +186,21 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 		render = astroContent.render
 	}
 
-	const items: Item[] = []
+	// Flatten (source, entry) pairs into a single task list. The index of
+	// each pair is its place in the merged-but-unsorted item order; writing
+	// results back to that same index preserves deterministic ordering
+	// under stable sorts, even when tasks finish out of order.
+	type PendingItem = { entry: CollectionEntry<CollectionKey>; source: Source }
+	const pending: PendingItem[] = []
 	for (const group of sourceGroups) {
 		for (const entry of group.entries) {
-			const item = await buildItem(entry, group.source, config, container, siteUrl, render)
-			items.push(item)
+			pending.push({ entry, source: group.source })
 		}
 	}
+
+	const items = await mapConcurrent(pending, MAX_CONCURRENCY, async ({ entry, source }) =>
+		buildItem(entry, source, config, container, siteUrl, render),
+	)
 
 	const sorted = items.toSorted(config.sort)
 	const limited = sorted.slice(0, config.limit)

@@ -85,7 +85,13 @@ export function defaultItemResolver({ entry, siteUrl }: ItemResolverArgs): Parti
  */
 function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Partial<Item> {
 	const merged: Partial<Item> = { ...lower }
-	for (const [key, value] of Object.entries(higher)) {
+	// `Object.keys` over `Object.entries` avoids the per-key two-element
+	// tuple allocation. Per-entry cost shows up in bench when a
+	// `resolveItem` overlay is present; the field set is small, but this
+	// runs once per entry.
+	const higherRecord = higher as Record<string, unknown>
+	for (const key of Object.keys(higherRecord)) {
+		const value = higherRecord[key]
 		if (value === undefined)
 			continue
 			// The Item type has narrow per-key value types; the loop widens them,

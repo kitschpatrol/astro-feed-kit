@@ -400,7 +400,25 @@ export async function sanitizeHtml(
 	truncateAtBoundary(document, excerptBoundary)
 	const { content } = await Defuddle(document, permalink, {
 		markdown: true,
+		// Defuddle's default removal passes target messy web pages — ads,
+		// social buttons, hidden overlays, tracking pixels, small icons,
+		// boilerplate "read time" markers. Astro-rendered content is a
+		// clean fragment from a markdown/MDX source; none of those pass
+		// over it will find anything to remove, but each one still walks
+		// the DOM. The rehype-sanitize layer downstream is the security
+		// gate (script/style/iframe policy, attribute allowlist), so
+		// disabling these passes does not weaken what actually ships.
+		removeContentPatterns: false,
+		removeExactSelectors: false,
+		removeHiddenElements: false,
+		removePartialSelectors: false,
+		removeSmallImages: false,
 		standardize: true,
+		// Never hit the network from inside feed generation. Defuddle's
+		// async extractors are for browser-extension-style scraping of
+		// third-party pages (YouTube transcripts, Reddit comments), not
+		// for our own rendered entries.
+		useAsync: false,
 	})
 
 	const cleanHtml = await markdownToHtml(content)
