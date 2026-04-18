@@ -33,6 +33,8 @@
 		"src"
 	],
 	"scripts": {
+		"bench": "vitest bench --run --compare test/benchmarks/baseline.json",
+		"bench:baseline": "vitest bench --run --outputJson test/benchmarks/baseline.json",
 		"build": "pnpm astro sync && pnpm run -r astro sync",
 		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
 		"dev": "pnpm run play",
