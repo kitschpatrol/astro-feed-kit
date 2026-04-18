@@ -18,8 +18,8 @@ import type { ExcerptBoundary } from './config'
  * Hosts whose iframes are preserved. Everything else is dropped. This is a
  * deliberate middle ground: the Atom spec (RFC 4287) calls iframes unsafe, but
  * real feed readers render them from well-known embed providers. Keeping the
- * list short and editing it in-tree is preferable to exposing user config —
- * the policy is a pragmatic tradeoff, not per-site configuration.
+ * list short and editing it in-tree is preferable to exposing user config — the
+ * policy is a pragmatic tradeoff, not per-site configuration.
  */
 const ALLOWED_IFRAME_HOSTS = new Set([
 	'bandcamp.com',
@@ -180,7 +180,10 @@ const REL_SPLIT = /\s+/
 
 type VisitResult = [typeof SKIP, number] | undefined
 
-/** Visit callback used by `rehypeFeedTransform` — hoisted to avoid a per-call closure. */
+/**
+ * Visit callback used by `rehypeFeedTransform` — hoisted to avoid a per-call
+ * closure.
+ */
 function visitFeedElement(
 	node: Element,
 	index: number | undefined,
@@ -203,7 +206,10 @@ function visitFeedElement(
 	return undefined
 }
 
-/** Transformer for `rehypeFeedTransform`. Hoisted so the plugin factory has no closure. */
+/**
+ * Transformer for `rehypeFeedTransform`. Hoisted so the plugin factory has no
+ * closure.
+ */
 function feedTransform(tree: Root): void {
 	visit(tree, 'element', visitFeedElement)
 }
@@ -221,7 +227,10 @@ function rehypeFeedTransform() {
 	return feedTransform
 }
 
-/** Ensure `rel` contains `noopener` and `noreferrer` when the link opens in a new tab. */
+/**
+ * Ensure `rel` contains `noopener` and `noreferrer` when the link opens in a
+ * new tab.
+ */
 function hardenAnchor(node: Element): void {
 	if (node.properties.target !== '_blank') return
 	const existing = node.properties.rel
@@ -334,15 +343,22 @@ function removeFollowingSiblings(node: SanitizeAncestor | SanitizeNode): void {
 	}
 }
 
+const DEFAULT_READ_MORE_TEXT = 'Continue reading →'
+
 /**
  * Truncate `document` at `boundary`. Keeps all content before the marker in
  * document order; drops the marker itself and everything after. When the marker
  * is nested, walks up ancestor-by-ancestor trimming following siblings at each
- * level so no post-marker content survives.
+ * level so no post-marker content survives. Optionally appends a "read more"
+ * link when `boundary.readMore` is set.
  *
  * No-op when `boundary` is `false` or the marker is not found.
  */
-function truncateAtBoundary(document: SanitizeDocument, boundary: ExcerptBoundary | false): void {
+function truncateAtBoundary(
+	document: SanitizeDocument,
+	boundary: ExcerptBoundary | false,
+	permalink: string,
+): void {
 	if (boundary === false) return
 	const marker = findBoundaryNode(document, boundary)
 	if (marker === undefined) return
@@ -363,22 +379,33 @@ function truncateAtBoundary(document: SanitizeDocument, boundary: ExcerptBoundar
 		removeFollowingSiblings(node)
 		node = node.parentElement
 	}
+
+	// Phase C — append a "read more" link if configured.
+	if (boundary.readMore) {
+		const text = typeof boundary.readMore === 'string' ? boundary.readMore : DEFAULT_READ_MORE_TEXT
+		const p = document.createElement('p')
+		const a = document.createElement('a')
+		a.setAttribute('href', permalink)
+		a.textContent = text
+		p.append(a)
+		body.append(p)
+	}
 }
 
 /**
- * Converts a given HTML string into a sanitized version suitable for RSS,
- * Atom, and JSON feeds.
+ * Converts a given HTML string into a sanitized version suitable for RSS, Atom,
+ * and JSON feeds.
  *
  * The pipeline is order-sensitive:
  *
  * 1. Excerpt truncation runs on the raw DOM before Defuddle, because Defuddle
- *    strips HTML comments during sanitization and then serializes to markdown
- *    — by the time it returns, the `<!-- excerpt -->` marker is gone.
+ *    strips HTML comments during sanitization and then serializes to markdown —
+ *    by the time it returns, the `<!-- excerpt -->` marker is gone.
  * 2. Defuddle extracts the main content and converts it to markdown (with
- *    GFM-compatible pipe tables for simple tables, raw HTML fallback for
- *    tables with colspan/rowspan).
- * 3. The unified processor re-parses that markdown with GFM support, converts
- *    to hast (preserving any raw HTML via `rehype-raw`), applies feed-specific
+ *    GFM-compatible pipe tables for simple tables, raw HTML fallback for tables
+ *    with colspan/rowspan).
+ * 3. The unified processor re-parses that markdown with GFM support, converts to
+ *    hast (preserving any raw HTML via `rehype-raw`), applies feed-specific
  *    transforms (link hardening, iframe host filtering), and finally enforces
  *    an allowlist schema before serializing back to HTML.
  *
@@ -397,7 +424,7 @@ export async function sanitizeHtml(
 	excerptBoundary: ExcerptBoundary | false,
 ): Promise<string> {
 	const { document } = parseHTML(wrapInHtml(html))
-	truncateAtBoundary(document, excerptBoundary)
+	truncateAtBoundary(document, excerptBoundary, permalink)
 	const { content } = await Defuddle(document, permalink, {
 		markdown: true,
 		// Defuddle's default removal passes target messy web pages — ads,

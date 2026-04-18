@@ -91,8 +91,13 @@ export type SourceInput = string | { [C in CollectionKey]: Source<C> }[Collectio
  *   `{comment: 'excerpt'}` matches `<!-- excerpt -->`).
  * - `{selector}` matches the first element under `<body>` returned by
  *   `Document.querySelector(selector)`.
+ * - `{readMore}` optionally appends a "Continue reading..." link pointing to the
+ *   entry's permalink after truncation. Pass `true` for the default text, or a
+ *   string to customize it.
  */
-export type ExcerptBoundary = { comment: string } | { selector: string }
+export type ExcerptBoundary =
+	| { comment: string; readMore?: boolean | string }
+	| { readMore?: boolean | string; selector: string }
 
 /**
  * Filenames for each feed format, relative to the site root. Used to populate
@@ -124,10 +129,9 @@ export type FormatsInput = Partial<Record<keyof FormatFilenames, boolean | strin
  */
 export type FeedKitConfig = {
 	/**
-	 * Truncates each entry's rendered HTML at a marker. Defaults to `{comment:
-	 * 'excerpt'}`, which matches the `<!-- excerpt -->` comment emitted by this
-	 * site's `<Excerpt />` component. Pass `false` to disable truncation and
-	 * publish full content.
+	 * Truncates each entry's rendered HTML at a marker. Defaults to `false` (full
+	 * content). Pass an `ExcerptBoundary` object to enable truncation, optionally
+	 * with a `readMore` link appended after the cut.
 	 */
 	excerptBoundary?: ExcerptBoundary | false
 	/**
@@ -261,7 +265,7 @@ function resolveFormatEntry(
 
 const DEFAULT_LIMIT = 25
 
-const DEFAULT_EXCERPT_BOUNDARY: ExcerptBoundary = { comment: 'excerpt' }
+const DEFAULT_EXCERPT_BOUNDARY: ExcerptBoundary = { comment: 'excerpt', readMore: true }
 
 const DEFAULT_KNOWN_RENDERERS = [
 	'@astrojs/mdx',

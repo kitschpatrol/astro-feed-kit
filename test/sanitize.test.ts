@@ -66,6 +66,41 @@ describe('sanitizeHtml', () => {
 		expect(out).toContain('before')
 		expect(out).not.toContain('after')
 	})
+
+	it('appends a default read-more link when readMore is true', async () => {
+		const html = `<p>before</p><!-- excerpt --><p>after</p>`
+		const out = await sanitizeHtml(html, PERMALINK, { comment: 'excerpt', readMore: true })
+		expect(out).toContain('before')
+		expect(out).not.toContain('after')
+		expect(out).toContain('Continue reading →')
+		expect(out).toContain(`href="${PERMALINK}"`)
+	})
+
+	it('appends a custom read-more link when readMore is a string', async () => {
+		const html = `<p>before</p><!-- excerpt --><p>after</p>`
+		const out = await sanitizeHtml(html, PERMALINK, {
+			comment: 'excerpt',
+			readMore: 'Read the full post',
+		})
+		expect(out).toContain('Read the full post')
+		expect(out).toContain(`href="${PERMALINK}"`)
+	})
+
+	it('does not append a read-more link when readMore is omitted', async () => {
+		const html = `<p>before</p><!-- excerpt --><p>after</p>`
+		const out = await sanitizeHtml(html, PERMALINK, { comment: 'excerpt' })
+		expect(out).not.toContain('Continue reading')
+	})
+
+	it('does not append a read-more link when the marker is not found', async () => {
+		const before = `<p>${'before content '.repeat(20)}</p>`
+		const after = `<p>${'after content '.repeat(20)}</p>`
+		const out = await sanitizeHtml(`${before}${after}`, PERMALINK, {
+			comment: 'missing',
+			readMore: true,
+		})
+		expect(out).not.toContain('Continue reading')
+	})
 })
 
 // The `sanitizeHtml` tests below cover the full integration path: HTML input

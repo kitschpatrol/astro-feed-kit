@@ -122,7 +122,7 @@ The integration accepts a single `FeedKitConfig` object.
 | `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                        |
 | `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                      |
 | `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                  |
-| `excerptBoundary` | `{comment: string} \| {selector: string} \| false`              | `{comment: 'excerpt'}`                                                                                                      | Where to truncate the rendered HTML. `false` disables truncation.                                                                                                                                        |
+| `excerptBoundary` | `ExcerptBoundary \| false`                                      | `false`                                                                                                                     | Where to truncate the rendered HTML. `false` disables truncation. Each boundary object accepts an optional `readMore` field (`true` or a custom string) to append a "Continue reading..." link.          |
 | `formats`         | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename. |
 | `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to probe when `renderers` is not supplied. Merged with a default list of known Astro renderers.                                                                             |
 | `renderers`       | `AstroRenderer[]`                                               | `[]`                                                                                                                        | Explicit list of Astro renderers to load into the content container. Skips `knownRenderers` probing when non-empty. Recommended for standalone `generateFeed` callers and exotic install layouts.        |
@@ -244,7 +244,7 @@ With `site: 'https://example.com'`, a post tagged `"Astro"` produces `<category 
 
 ### Excerpt boundaries
 
-By default, each entry's rendered HTML is truncated at an `<!-- excerpt -->` comment. Everything after the marker is dropped from the feed, which is handy for teaser-style feeds paired with a "read more" link at the article URL.
+By default, truncation is disabled and full content is published. To enable it, set `excerptBoundary` to an HTML comment or CSS selector. Everything after the marker is dropped from the feed, which is handy for teaser-style feeds paired with a "read more" link at the article URL.
 
 ```mdx
 ---
@@ -268,8 +268,11 @@ feedKit({ excerptBoundary: { comment: 'feed-cut' } /* … */ })
 // Match a CSS selector on the rendered body
 feedKit({ excerptBoundary: { selector: 'hr.fold' } /* … */ })
 
-// Disable truncation — publish full content
-feedKit({ excerptBoundary: false /* … */ })
+// Append a "Continue reading..." link after the truncation point
+feedKit({ excerptBoundary: { comment: 'excerpt', readMore: true } /* … */ })
+
+// Use custom link text
+feedKit({ excerptBoundary: { comment: 'excerpt', readMore: 'Read the full post →' } /* … */ })
 ```
 
 The truncation runs on the raw DOM before [Defuddle](https://github.com/kepano/defuddle) sanitizes it, because Defuddle strips HTML comments during its markdown conversion.
