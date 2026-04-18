@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeHtml } from '../src/integration/sanitize'
+import { markdownToHtml, sanitizeHtml } from '../src/integration/sanitize'
 
 const PERMALINK = 'https://example.com/post'
+
+// Static regexes hoisted to module scope (lint: prefer-static-regex).
+const COLSPAN_2 = /colspan="?2"?/
+const ROWSPAN_2 = /rowspan="?2"?/
+const INPUT_DISABLED_CHECKBOX = /<input disabled type="checkbox">/
+const TYPE_TEXT = /type="text"/
+const CHECKBOX_INPUT = /<input[^>]*type="checkbox"[^>]*>/
+const DISABLED_INPUT = /<input[^>]*disabled[^>]*>/
+const TARGET_BLANK = /target="_blank"/
+const REL_HAS_NOOPENER = /rel="[^"]*noopener[^"]*"/
+const REL_HAS_NOREFERRER = /rel="[^"]*noreferrer[^"]*"/
+const HREF_DATA_SCHEME = /href="data:/
+// Built from parts so `no-script-url` doesn't flag the literal string.
+const JAVASCRIPT_SCHEME = ['java', 'script:'].join('')
 
 describe('sanitizeHtml', () => {
 	it('returns sanitized HTML when no boundary is configured (false)', async () => {
@@ -51,5 +65,186 @@ describe('sanitizeHtml', () => {
 		const out = await sanitizeHtml(html, PERMALINK, { selector: '#cut' })
 		expect(out).toContain('before')
 		expect(out).not.toContain('after')
+	})
+})
+
+// The `sanitizeHtml` tests below cover the full integration path: HTML input
+// → linkedom truncation → Defuddle (HTML → markdown) → unified pipeline →
+// HTML output. Defuddle aggressively normalizes its output — it strips most
+// element attributes (target, colspan, rowspan, style, etc.) when serializing
+// to markdown, so the integration tests here only assert coarse survival of
+// structural elements.
+//
+// The finer-grained allowlist tests live in the `markdownToHtml: allowlist`
+// suite below, which exercises the unified pipeline directly with markdown +
+// raw HTML — the layer where `rehypeFeedTransform` and `rehypeSanitize`
+// actually run.
+describe('sanitizeHtml: integration', () => {
+	const padding = 'body content '.repeat(20)
+
+	it('preserves HTML tables through the Defuddle roundtrip', async () => {
+		const html = `<p>${padding}</p>
+<table>
+  <thead><tr><th>h1</th><th>h2</th></tr></thead>
+  <tbody><tr><td>a</td><td>b</td></tr></tbody>
+</table>`
+		const out = await sanitizeHtml(html, PERMALINK, false)
+		expect(out).toContain('<table>')
+		expect(out).toContain('<th>h1</th>')
+		expect(out).toContain('<td>a</td>')
+	})
+
+	it('strips <script>, <style>, <form>, <iframe> end-to-end', async () => {
+		const html = `<p>${padding}</p>
+<script>alert(1)</script>
+<style>.x{color:red}</style>
+<form><input type="text" name="x"></form>
+<iframe src="https://evil.example/embed"></iframe>`
+		const out = await sanitizeHtml(html, PERMALINK, false)
+		expect(out).not.toContain('<script')
+		expect(out).not.toContain('alert(1)')
+		expect(out).not.toContain('<style')
+		expect(out).not.toContain('<form')
+		expect(out).not.toContain('<input')
+		expect(out).not.toContain('<iframe')
+		expect(out).not.toContain('evil.example')
+	})
+})
+
+// `markdownToHtml` is the post-Defuddle layer: remarkParse → remarkGfm →
+// remarkRehype(allowDangerousHtml) → rehypeRaw → rehypeFeedTransform →
+// rehypeSanitize → rehypeStringify. Testing it directly lets us probe behavior
+// that Defuddle would otherwise obscure — attribute preservation, iframe host
+// filtering, link rel hardening, GFM table parsing.
+describe('markdownToHtml: allowlist', () => {
+	it('parses GFM pipe tables', async () => {
+		const md = `| h1 | h2 |
+| --- | --- |
+| a | b |
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('<table>')
+		expect(out).toContain('<th>h1</th>')
+		expect(out).toContain('<td>a</td>')
+	})
+
+	it('preserves raw HTML tables with colspan/rowspan', async () => {
+		const md = `
+<table>
+  <thead><tr><th colspan="2">header</th></tr></thead>
+  <tbody><tr><td rowspan="2">x</td><td>y</td></tr></tbody>
+</table>
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('<table>')
+		expect(out).toMatch(COLSPAN_2)
+		expect(out).toMatch(ROWSPAN_2)
+	})
+
+	it('strips <script>, <style>, and <form>; coerces <input> to disabled checkbox', async () => {
+		const md = `Body.
+
+<script>alert(1)</script>
+<style>.x{color:red}</style>
+<form><input type="text" name="x"></form>
+`
+		const out = await markdownToHtml(md)
+		expect(out).not.toContain('<script')
+		expect(out).not.toContain('alert(1)')
+		expect(out).not.toContain('<style')
+		expect(out).not.toContain('<form')
+		// The upstream GitHub schema preserves <input> but forces it to a
+		// disabled checkbox (for GFM task-list rendering). The `name` and any
+		// other text-input attrs are stripped, so the survivor is inert.
+		expect(out).not.toContain('name="x"')
+		expect(out).not.toMatch(TYPE_TEXT)
+		if (out.includes('<input')) {
+			expect(out).toMatch(INPUT_DISABLED_CHECKBOX)
+		}
+	})
+
+	it('renders GFM task list items as disabled checkboxes', async () => {
+		const md = `- [x] done
+- [ ] todo
+`
+		const out = await markdownToHtml(md)
+		expect(out).toMatch(CHECKBOX_INPUT)
+		expect(out).toMatch(DISABLED_INPUT)
+	})
+
+	it('strips inline style attributes', async () => {
+		const md = `Body.
+
+<p style="color:red">styled</p>
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('styled')
+		expect(out).not.toContain('style=')
+	})
+
+	it('adds noopener and noreferrer to target="_blank" links', async () => {
+		const md = `See <a href="https://example.org" target="_blank">site</a>.
+`
+		const out = await markdownToHtml(md)
+		expect(out).toMatch(TARGET_BLANK)
+		expect(out).toMatch(REL_HAS_NOOPENER)
+		expect(out).toMatch(REL_HAS_NOREFERRER)
+	})
+
+	it('leaves rel untouched when target is not _blank', async () => {
+		const md = `<a href="https://example.org">plain</a>
+`
+		const out = await markdownToHtml(md)
+		expect(out).not.toContain('rel=')
+	})
+
+	it('preserves iframes from allowlisted hosts', async () => {
+		const md = `<iframe src="https://www.youtube.com/embed/abc" title="demo"></iframe>
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('<iframe')
+		expect(out).toContain('src="https://www.youtube.com/embed/abc"')
+	})
+
+	it('drops iframes from non-allowlisted hosts', async () => {
+		const md = `<iframe src="https://evil.example/embed"></iframe>
+`
+		const out = await markdownToHtml(md)
+		expect(out).not.toContain('<iframe')
+		expect(out).not.toContain('evil.example')
+	})
+
+	it('drops iframes with non-https schemes even on allowlisted hosts', async () => {
+		const md = `<iframe src="http://www.youtube.com/embed/abc"></iframe>
+`
+		const out = await markdownToHtml(md)
+		expect(out).not.toContain('<iframe')
+	})
+
+	it('strips srcdoc from allowlisted iframes', async () => {
+		const md = `<iframe src="https://www.youtube.com/embed/abc" srcdoc="<script>alert(1)</script>"></iframe>
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('<iframe')
+		expect(out).not.toContain('srcdoc')
+		expect(out).not.toContain('alert(1)')
+	})
+
+	it('drops href values with javascript: or data:text/html schemes', async () => {
+		// Literal `javascript:` href is assembled dynamically so the lint rule
+		// `no-script-url` (which flags `"javascript:..."` string literals) does
+		// not trip on the deliberately-bad fixture.
+		const md = `<a href="${JAVASCRIPT_SCHEME}alert(1)">js</a>\n\n<a href="data:text/html,abc">data</a>\n`
+		const out = await markdownToHtml(md)
+		expect(out).not.toContain(JAVASCRIPT_SCHEME)
+		expect(out).not.toMatch(HREF_DATA_SCHEME)
+	})
+
+	it('keeps mailto: and tel: href schemes', async () => {
+		const md = `<a href="mailto:x@example.com">email</a> <a href="tel:+15555551212">phone</a>
+`
+		const out = await markdownToHtml(md)
+		expect(out).toContain('href="mailto:x@example.com"')
+		expect(out).toContain('href="tel:+15555551212"')
 	})
 })

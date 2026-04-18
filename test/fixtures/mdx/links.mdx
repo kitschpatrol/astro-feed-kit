@@ -1,0 +1,44 @@
+---
+title: Links
+---
+
+Link sanitization covers scheme restrictions and `target="_blank"` hardening.
+The author can write markdown links, raw HTML links, and URLs to various
+schemes — the sanitizer decides which survive.
+
+Padding: the sanitizer exists because feed content is rendered by many
+different clients, some of which follow links eagerly (preview fetches,
+link unfurling) or honor `target` in ways that can leak referrer data.
+Forcing `rel="noopener noreferrer"` on any `target="_blank"` link closes
+the referrer and prevents `window.opener` abuse on clients that do open
+new tabs. The `rel` change is idempotent.
+
+## Safe schemes
+
+Plain external link: [Example](https://example.org/one)
+
+Email: <a href="mailto:editor@example.org">editor@example.org</a>
+
+Phone: <a href="tel:+15555551212">+1-555-555-1212</a>
+
+## target=\_blank hardening
+
+<a href="https://external.example/" target="_blank">
+  opens in new tab
+</a>
+
+<a href="https://another.example/" target="_blank" rel="author">
+  opens with existing rel
+</a>
+
+## Unsafe schemes
+
+<a href="javascript:alert(1)">js scheme</a>
+
+<a href="data:text/html,<script>alert(1)</script>">data html</a>
+
+<a href="file:///etc/passwd">file scheme</a>
+
+<a href="vbscript:msgbox(1)">vbscript</a>
+
+Trailing paragraph so the body has substance.

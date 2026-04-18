@@ -1,0 +1,49 @@
+---
+title: Tables
+---
+
+Tables should survive the roundtrip. Lots of padding content first so Defuddle
+doesn't classify this body as boilerplate — its content extractor drops short
+pages aggressively.
+
+This is a blog post about data tables. Tables are a legitimate part of web
+content — pricing grids, comparisons, schedules, specs. Every modern feed
+reader renders HTML tables correctly, so they belong in the allowlist.
+
+## Pipe table
+
+| Fruit  | Count | Notes  |
+| ------ | ----- | ------ |
+| Apple  | 12    | red    |
+| Banana | 3     | yellow |
+| Cherry | 100   | many   |
+
+## HTML table with spans
+
+<table>
+  <caption>Shifts</caption>
+  <thead>
+    <tr>
+      <th scope="col">Day</th>
+      <th scope="col" colspan="2">
+        Hours
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2">
+        Mon
+      </th>
+      <td>9–12</td>
+      <td>13–17</td>
+    </tr>
+    <tr>
+      <td>18–20</td>
+      <td>21–23</td>
+    </tr>
+  </tbody>
+</table>
+
+Trailing paragraph so Defuddle's heuristics have more weight on the main body
+than on the table itself.

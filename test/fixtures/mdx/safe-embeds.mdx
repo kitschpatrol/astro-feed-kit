@@ -1,0 +1,36 @@
+---
+title: Safe embeds
+---
+
+Well-known embed providers are allowed via the iframe host allowlist. These
+should pass through with their attributes intact (except for `srcdoc`, which
+is always stripped as a defense in depth).
+
+Padding content: the post discusses how feed readers handle embedded media.
+Modern readers (Feedbin, Inoreader, NewsBlur, NetNewsWire) render iframes
+from well-known providers. Blanket-dropping iframes would remove legitimate
+embedded video and audio from the author's feed. The host allowlist keeps
+these providers while rejecting arbitrary URLs.
+
+## YouTube
+
+<iframe
+  src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+  width="560"
+  height="315"
+  title="Demo"
+  allowfullscreen
+></iframe>
+
+## Vimeo
+
+<iframe
+  src="https://player.vimeo.com/video/123456"
+  width="640"
+  height="360"
+  title="Vimeo clip"
+></iframe>
+
+## Defense in depth — srcdoc should be stripped
+
+<iframe src="https://www.youtube.com/embed/abc" srcdoc="<script>alert(1)</script>"></iframe>

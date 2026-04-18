@@ -1,0 +1,29 @@
+---
+title: Excerpt
+---
+
+The section above the cut is the excerpt — everything above this point must
+survive the sanitize roundtrip untouched. The `<hr id="cut" />` below is the
+boundary marker consumed by `truncateAtBoundary`.
+
+Each fixture needs enough substance that Defuddle's extractor classifies it
+as content rather than boilerplate, so this paragraph pads the excerpt with
+enough sentences to cross that threshold. The cut happens before Defuddle
+sees the page, so the marker itself is already gone by the time the main
+content extraction runs.
+
+<hr id="cut" />
+
+## Below the cut marker
+
+Everything beyond this line uses the sentinel word ZZZBELOWZZZ so the test
+can make a precise negative assertion without worrying about phrasing that
+happens to appear in the legitimate pre-cut prose above.
+
+<p>ZZZBELOWZZZ paragraph.</p>
+
+<table>
+  <tr>
+    <td>ZZZBELOWZZZ cell</td>
+  </tr>
+</table>

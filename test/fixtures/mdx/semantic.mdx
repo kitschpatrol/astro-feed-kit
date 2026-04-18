@@ -1,0 +1,46 @@
+---
+title: Semantic
+---
+
+Semantic HTML5 elements should pass through. Feed readers increasingly render
+modern HTML structures correctly, so preserving `<details>`, `<figure>`,
+`<blockquote cite>`, `<time datetime>`, and friends retains authorial intent.
+
+Padding: this post walks through a handful of semantic elements to prove they
+survive the sanitizer. Not every reader will render `<details>` as an
+interactive disclosure — some flatten to a block — but even the flat rendering
+preserves the content.
+
+## Figure
+
+<figure>
+  <img src="https://cdn.example.com/photo.jpg" alt="A photo" />
+  <figcaption>Credit: an example photographer</figcaption>
+</figure>
+
+## Blockquote with cite
+
+<blockquote cite="https://example.org/source">
+  <p>We shape our tools and thereafter our tools shape us.</p>
+</blockquote>
+
+## Details / Summary
+
+<details open>
+  <summary>Click to expand</summary>
+  <p>Hidden content here.</p>
+</details>
+
+## Time
+
+Published on <time datetime="2026-04-17">April 17</time>.
+
+## Code
+
+Inline `code` and:
+
+```js
+console.log('block of code')
+```
+
+Final paragraph.
