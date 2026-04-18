@@ -145,7 +145,7 @@ type SourceInput = Source | string
 
 `collection` is the collection name registered in `src/content.config.ts`. Everything else narrows behavior for that source alone:
 
-- `filter` — composed with the built-in gate that drops `draft: true` / `encrypt: true` entries. Use it to hide archived posts, drafts with non-standard flags, or entries missing frontmatter your feed needs.
+- `filter` — composed with the built-in gate that drops `draft: true` entries. Use it to hide archived posts, drafts with non-standard flags, or entries missing frontmatter your feed needs.
 - `sort` — orders this source's entries before the per-source `limit` runs.
 - `limit` — caps this source before items are merged across sources.
 - `resolveItem` — returns a `Partial<Item>` to override built-in item fields for this source, including the per-entry `link`. See [Resolvers](#resolvers) below.

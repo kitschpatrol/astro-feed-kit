@@ -13,11 +13,11 @@ function readField(data: unknown, key: string): unknown {
 }
 
 function defaultEligibilityFilter(entry: CollectionEntry<CollectionKey>): boolean {
-	// Excludes drafts and encrypted entries by convention. Collections that
-	// don't declare these fields are unaffected — missing fields read as
-	// undefined and pass the check.
+	// Excludes drafts by convention. `draft: true` is a widely used flag in
+	// Astro blog templates and ports of the Hugo/Jekyll frontmatter idiom.
+	// Collections that don't declare the field are unaffected — it reads as
+	// undefined and passes the check.
 	if (readField(entry.data, 'draft') === true) return false
-	if (readField(entry.data, 'encrypt') === true) return false
 	return true
 }
 
@@ -36,8 +36,8 @@ export type SourceEntries = {
  * Load each configured source's eligible entries. For every source, applies
  * four gates in order:
  *
- * 1. Filter — built-in gate (drops `draft: true` / `encrypt: true`) composed with
- *    the source's optional `filter`.
+ * 1. Filter — built-in gate (drops `draft: true`) composed with the source's
+ *    optional `filter`.
  * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is enforced
  *    on each surviving entry's `data`. Throws with collection and id context on
  *    failure; silent exclusion would mask real problems.

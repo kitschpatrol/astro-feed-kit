@@ -56,7 +56,7 @@ export type ItemResolver<C extends CollectionKey = CollectionKey> = (
  */
 export type Source<C extends CollectionKey = CollectionKey> = {
 	collection: C
-	/** Narrows eligible entries. Composed with the built-in draft/encrypt gate. */
+	/** Narrows eligible entries. Composed with the built-in `draft: true` gate. */
 	filter?: (entry: CollectionEntry<C>) => boolean
 	/** Caps this source before items are merged across sources. */
 	limit?: number
