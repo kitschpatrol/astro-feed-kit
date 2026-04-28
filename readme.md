@@ -18,6 +18,10 @@
 
 <!-- /short-description -->
 
+> [!WARNING]
+>
+> **This project is under development. It should not be considered suitable for general use until a 1.0 release.**
+
 ## Overview
 
 `astro-feed-kit` generates RSS 2.0, Atom 1.0, and JSON Feed 1.0 endpoints from one or more Astro content collections. A single integration call emits all three formats from the same underlying data, so your feed readers can pick whichever they prefer without you maintaining three separate renderers.
