@@ -271,8 +271,6 @@ function resolveFormatEntry(
 
 const DEFAULT_LIMIT = 25
 
-const DEFAULT_EXCERPT_BOUNDARY: ExcerptBoundary = { comment: 'excerpt', readMore: true }
-
 const DEFAULT_KNOWN_RENDERERS = [
 	'@astrojs/mdx',
 	'@astrojs/react',
@@ -371,7 +369,7 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 	}
 
 	return {
-		excerptBoundary: input.excerptBoundary ?? DEFAULT_EXCERPT_BOUNDARY,
+		excerptBoundary: input.excerptBoundary ?? false,
 		feedOptions,
 		formats,
 		includeContent: input.includeContent ?? true,

@@ -33,9 +33,9 @@ describe('defineFeedKitConfig', () => {
 		expect(resolved.limit).toBe(25)
 	})
 
-	it('defaults excerptBoundary to {comment: "excerpt"}', () => {
+	it('defaults excerptBoundary to false (full content)', () => {
 		const resolved = defineFeedKitConfig(baseInput)
-		expect(resolved.excerptBoundary).toEqual({ comment: 'excerpt' })
+		expect(resolved.excerptBoundary).toBe(false)
 	})
 
 	it('defaults includeContent to true', () => {
