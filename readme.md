@@ -29,7 +29,7 @@ It covers:
 - **Three formats from one config**\
   RSS 2.0, Atom 1.0, and JSON Feed 1.0 endpoints, auto-injected as prerendered routes.
 - **Full-content rendering**\
-  Each entry is rendered through `AstroContainer` (with your MDX / React / Svelte / Vue / etc. renderers), then cleaned up with [Defuddle](https://github.com/kepano/defuddle) and passed through [remark](https://remark.js.org) for stable, feed-reader-safe HTML.
+  Each entry is rendered through `AstroContainer` (with your MDX / React / Svelte / Vue / etc. renderers), then cleaned up with [Defuddle](https://github.com/kepano/defuddle) and passed through a [unified](https://unifiedjs.com) remark/rehype pipeline (allowlist sanitization, link hardening, iframe host filtering) for feed-reader-safe HTML.
 - **Excerpt boundaries**\
   Cut posts off at an HTML comment (`<!-- excerpt -->`) or a CSS selector so teaser-style feeds work without duplicating content.
 - **Frontmatter resolvers**\
