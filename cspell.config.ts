@@ -3,6 +3,7 @@ import { cspellConfig } from '@kitschpatrol/cspell-config'
 export default cspellConfig({
 	ignorePaths: ['research/**'],
 	words: [
+		'Ango',
 		'codepen',
 		'codesandbox',
 		'defuddle',
@@ -14,6 +15,7 @@ export default cspellConfig({
 		'prerendered',
 		'rels',
 		'rowspan',
+		'Steph',
 		'ZZZBELOWZZZ',
 	],
 })

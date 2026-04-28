@@ -434,6 +434,8 @@ Astro component that emits `<link rel="alternate">` tags for the RSS, Atom, and 
 
 [Christian Praß's](https://prass.tech/) blog post "[Astro RSS Feeds with Full MDX Content](https://prass.tech/blog/rss-full-content-rendering/)" was also helpful.
 
+[Steph Ango's](https://stephango.com/) [Defuddle](https://github.com/kepano/defuddle) handles the HTML cleanup pass that turns rendered Astro entries into feed-reader-friendly markup.
+
 Gratitude is always due to the [unified](https://unifiedjs.com) [team](https://github.com/unifiedjs/collective/?tab=readme-ov-file#unified-team) for [remark](https://remark.js.org) and their entire ecosystem of AST-wrangling libraries and tools.
 
 <!-- contributing -->
