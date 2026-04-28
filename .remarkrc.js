@@ -2,7 +2,7 @@ import { remarkConfig } from '@kitschpatrol/remark-config'
 
 export default remarkConfig({
 	rules: [
-		// Useful if the repository is not yet pushed to a remote.
+		// Issues validating absolute links in the Starlight playground...
 		['remarkValidateLinks', { repository: false }],
 		['remark-lint-first-heading-level', false],
 	],
