@@ -244,7 +244,24 @@ With `site: 'https://example.com'`, a post tagged `"Astro"` produces `<category 
 
 ### Excerpt boundaries
 
-By default, truncation is disabled and full content is published. To enable it, set `excerptBoundary` to an HTML comment or CSS selector. Everything after the marker is dropped from the feed, which is handy for teaser-style feeds paired with a "read more" link at the article URL.
+By default, truncation is disabled and full content is published. To enable it, set `excerptBoundary` to either an HTML comment or a CSS selector. Everything after the marker is dropped from the feed, which is handy for teaser-style feeds paired with a "read more" link at the article URL.
+
+In a plain `.md` file, mark the boundary with an HTML comment:
+
+```md
+---
+title: Hello
+date: 2026-04-10
+---
+
+This first paragraph appears in the feed.
+
+<!-- excerpt -->
+
+The rest only appears on the site.
+```
+
+In an `.mdx` file, MDX rejects HTML comments and silently strips JSX comments (`{/* … */}`) at compile time, so the comment-style boundary won't reach the rendered HTML. Use a CSS-selector boundary instead, marked with any element that survives MDX compilation — for example an `<hr>` with an `id`:
 
 ```mdx
 ---
@@ -254,7 +271,7 @@ date: 2026-04-10
 
 This first paragraph appears in the feed.
 
-{/* excerpt */}
+<hr id="cut" />
 
 The rest only appears on the site.
 ```
@@ -262,17 +279,17 @@ The rest only appears on the site.
 Configure the boundary via `excerptBoundary`:
 
 ```ts
-// Match a custom comment
-feedKit({ excerptBoundary: { comment: 'feed-cut' } /* … */ })
+// Match an HTML comment (works in .md, not .mdx)
+feedKit({ excerptBoundary: { comment: 'excerpt' } /* … */ })
 
-// Match a CSS selector on the rendered body
-feedKit({ excerptBoundary: { selector: 'hr.fold' } /* … */ })
+// Match a CSS selector on the rendered body (works in .md and .mdx)
+feedKit({ excerptBoundary: { selector: '#cut' } /* … */ })
 
 // Append a "Continue reading..." link after the truncation point
-feedKit({ excerptBoundary: { comment: 'excerpt', readMore: true } /* … */ })
+feedKit({ excerptBoundary: { readMore: true, selector: '#cut' } /* … */ })
 
 // Use custom link text
-feedKit({ excerptBoundary: { comment: 'excerpt', readMore: 'Read the full post →' } /* … */ })
+feedKit({ excerptBoundary: { readMore: 'Read the full post →', selector: '#cut' } /* … */ })
 ```
 
 The truncation runs on the raw DOM before [Defuddle](https://github.com/kepano/defuddle) sanitizes it, because Defuddle strips HTML comments during its markdown conversion.
