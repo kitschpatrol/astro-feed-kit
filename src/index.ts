@@ -30,9 +30,9 @@ export {
 } from './integration/schemas'
 
 const ENDPOINT_FILES: Record<keyof FormatFilenames, string> = {
-	atom: './internal/endpoints/atom.ts',
-	json: './internal/endpoints/json.ts',
-	rss: './internal/endpoints/rss.ts',
+	atom: './internal/endpoints/atom.js',
+	json: './internal/endpoints/json.js',
+	rss: './internal/endpoints/rss.js',
 }
 
 // Typed key list drives the endpoint injection loop. Declaring the tuple

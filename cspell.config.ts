@@ -6,7 +6,6 @@ export default cspellConfig({
 		'codepen',
 		'codesandbox',
 		'defuddle',
-		'Defuddle',
 		'inlines',
 		'Inoreader',
 		'Monette',

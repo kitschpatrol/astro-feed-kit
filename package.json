@@ -27,29 +27,32 @@
 	"sideEffects": true,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
 		"./components/FeedKit.astro": "./src/components/FeedKit.astro"
 	},
 	"files": [
-		"src"
+		"dist",
+		"src/components"
 	],
 	"scripts": {
 		"bench": "vitest bench --run --compare test/benchmarks/baseline.json",
 		"bench:baseline": "vitest bench --run --outputJson test/benchmarks/baseline.json",
-		"build": "pnpm astro sync && pnpm run -r astro sync",
+		"build": "tsdown && pnpm astro sync && pnpm run -r astro sync",
 		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
 		"dev": "pnpm run play",
 		"fix": "ksc fix",
 		"lint": "ksc lint && pnpm run -r --include-workspace-root astro check",
 		"play": "pnpm -C playground run dev",
 		"play-starlight": "pnpm -C playground-starlight run dev",
+		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') && pnpm publish",
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"defuddle": "^0.18.1",
 		"feed": "^5.2.1",
-		"linkedom": "^0.18.12",
 		"rehype-raw": "7.0.0",
 		"rehype-sanitize": "6.0.0",
 		"rehype-stringify": "10.0.1",
@@ -66,10 +69,13 @@
 		"@types/node": "~24.12.2",
 		"astro": "^6.1.10",
 		"bumpp": "^11.0.1",
+		"defuddle": "^0.18.1",
 		"hast-util-sanitize": "5.0.2",
+		"linkedom": "^0.18.12",
 		"node-addon-api": "^8.7.0",
 		"node-gyp": "^12.3.0",
 		"shx": "^0.4.0",
+		"tsdown": "^0.21.10",
 		"typescript": "~6.0.3",
 		"vite": "^7.3.2",
 		"vitest": "^4.1.5"
