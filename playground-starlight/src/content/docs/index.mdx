@@ -1,11 +1,18 @@
 ---
 title: astro-feed-kit
-description: Demo site for astro-feed-kit middleware in Starlight.
-template: splash
-hero:
-  title: astro-feed-kit
-  tagline: Astro middleware for DOM transformation.
-  actions:
-    - text: Middleware Tests
-      link: /middleware
+description: Demo site for astro-feed-kit in Starlight.
 ---
+
+This Starlight playground demonstrates `astro-feed-kit` generating feeds from a
+docs collection.
+
+## Feeds
+
+- [/rss.xml](/rss.xml)
+- [/atom.xml](/atom.xml)
+- [/feed.json](/feed.json)
+
+## Entries
+
+The sidebar lists each demo entry. Their dated frontmatter is what makes them
+eligible for the feed (see the `filter` in `astro.config.ts`).

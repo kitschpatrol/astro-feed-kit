@@ -12,8 +12,11 @@ export default defineConfig({
 			},
 			sidebar: [
 				{
-					items: [{ label: 'Middleware', slug: 'middleware' }],
-					label: 'Tests',
+					items: [
+						{ label: 'Hello, feed-kit', slug: 'hello-feed-kit' },
+						{ label: 'Plain markdown entry', slug: 'markdown-post' },
+					],
+					label: 'Entries',
 				},
 			],
 			title: 'astro-feed-kit',
