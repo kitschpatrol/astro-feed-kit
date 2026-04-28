@@ -14,7 +14,7 @@
 
 <!-- short-description -->
 
-**Astro integration for full-content feeds.**
+**Astro integration for full-content RSS, Atom, and JSON feeds.**
 
 <!-- /short-description -->
 
