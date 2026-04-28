@@ -99,7 +99,7 @@ export async function resolveContainerRenderers(
 			}
 
 			const message = error instanceof Error ? error.message : String(error)
-			throw new Error(`feed-kit: failed to resolve renderer package '${pkg}': ${message}`, {
+			throw new Error(`astro-feed-kit: failed to resolve renderer package '${pkg}': ${message}`, {
 				cause: error,
 			})
 		}
@@ -109,7 +109,7 @@ export async function resolveContainerRenderers(
 			rendererModule = await import(/* @vite-ignore */ pathToFileURL(resolvedPath).href)
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error)
-			throw new Error(`feed-kit: failed to load renderer package '${pkg}': ${message}`, {
+			throw new Error(`astro-feed-kit: failed to load renderer package '${pkg}': ${message}`, {
 				cause: error,
 			})
 		}

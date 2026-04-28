@@ -112,7 +112,7 @@ async function buildItem(
 	const { link } = partial
 	if (link === undefined) {
 		throw new Error(
-			`feed-kit: resolveItem returned link: undefined for ${entry.collection}/${entry.id}. ` +
+			`astro-feed-kit: resolveItem returned link: undefined for ${entry.collection}/${entry.id}. ` +
 				'Return a string (or omit the field to use the default) so sanitize has a base URL.',
 		)
 	}
@@ -164,7 +164,7 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 	const siteUrl = config.feedOptions.link
 	if (siteUrl === undefined) {
 		throw new Error(
-			'feed-kit: config.feedOptions.link is required. It is used as the site URL when ' +
+			'astro-feed-kit: config.feedOptions.link is required. It is used as the site URL when ' +
 				'building per-item permalinks and default feed URLs.',
 		)
 	}
