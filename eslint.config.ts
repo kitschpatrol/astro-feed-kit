@@ -2,29 +2,7 @@ import { eslintConfig } from '@kitschpatrol/eslint-config'
 
 export default eslintConfig(
 	{
-		astro: {
-			overrides: {
-				// Remove in next shared-config release
-				'perfectionist/sort-intersection-types': [
-					'error',
-					{
-						groups: [
-							'named',
-							'union',
-							'intersection',
-							'conditional',
-							'function',
-							'import',
-							'keyword',
-							'operator',
-							'literal',
-							'tuple',
-							'object', // Last, otherwise esbuild will choke on `&` characters
-						],
-					},
-				],
-			},
-		},
+		astro: true,
 		ignores: [
 			// Astro code blocks in markdown aren't part of any tsconfig program
 			'**/*.md/*.astro',
@@ -36,15 +14,8 @@ export default eslintConfig(
 		type: 'lib',
 	},
 	{
-		files: ['package.json'],
-		rules: {
-			// TODO remove once all packages point to NPM
-			'json-package/valid-dependencies': 'off',
-		},
-	},
-	{
 		// Unpublished workspace packages...
-		files: ['*/package.json'],
+		files: ['playground/package.json', 'playground-starlight/package.json'],
 		rules: {
 			'json-package/require-keywords': 'off',
 			'json-package/require-version': 'off',
