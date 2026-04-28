@@ -41,9 +41,9 @@ const MediaSchema = z.union([z.url(), EnclosureSchema])
 const DateSchema = z.coerce.date()
 
 /**
- * Zod schema mirroring the `Item` shape consumed by the `feed` library. Used
- * to validate the resolved item produced by the resolver pipeline before it
- * is handed to `feed.addItem()`.
+ * Zod schema mirroring the `Item` shape consumed by the `feed` library. Used to
+ * validate the resolved item produced by the resolver pipeline before it is
+ * handed to `feed.addItem()`.
  */
 export const ItemSchema = z.looseObject({
 	audio: MediaSchema.optional(),
@@ -67,9 +67,9 @@ export const ItemSchema = z.looseObject({
 
 /**
  * Minimal contract that a content entry's `data` must satisfy to be eligible
- * for inclusion in a feed. Enforced inside `getFeedContent` so that every
- * entry reaching the resolver pipeline has at least a title and a date;
- * everything else is populated (or overridden) by resolvers.
+ * for inclusion in a feed. Enforced inside `getFeedContent` so that every entry
+ * reaching the resolver pipeline has at least a title and a date; everything
+ * else is populated (or overridden) by resolvers.
  */
 export const FeedEligibleEntrySchema = z.looseObject({
 	date: DateSchema,

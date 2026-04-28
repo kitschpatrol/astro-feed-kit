@@ -3,7 +3,10 @@ import type { ResolvedFeedKitConfig, Source } from './config'
 import { FeedEligibleEntrySchema } from './schemas'
 
 function readField(data: unknown, key: string): unknown {
-	if (typeof data !== 'object' || data === null) return undefined
+	if (typeof data !== 'object' || data === null) {
+		return undefined
+	}
+
 	// Narrowed to a non-null object; indexed read via a widening assertion
 	// is intentional — entry.data is a declared-schema union, but for
 	// site-agnostic filter defaults we need to probe common fields by
@@ -17,7 +20,10 @@ function defaultEligibilityFilter(entry: CollectionEntry<CollectionKey>): boolea
 	// Astro blog templates and ports of the Hugo/Jekyll frontmatter idiom.
 	// Collections that don't declare the field are unaffected — it reads as
 	// undefined and passes the check.
-	if (readField(entry.data, 'draft') === true) return false
+	if (readField(entry.data, 'draft') === true) {
+		return false
+	}
+
 	return true
 }
 
@@ -67,8 +73,14 @@ export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<Sou
 		const entries = await getCollection(
 			source.collection as CollectionKey,
 			(entry: CollectionEntry<CollectionKey>) => {
-				if (!defaultEligibilityFilter(entry)) return false
-				if (sourceFilter !== undefined && !sourceFilter(entry)) return false
+				if (!defaultEligibilityFilter(entry)) {
+					return false
+				}
+
+				if (sourceFilter !== undefined && !sourceFilter(entry)) {
+					return false
+				}
+
 				return true
 			},
 		)
@@ -82,6 +94,7 @@ export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<Sou
 						`(title, date): ${parsed.error.message}`,
 				)
 			}
+
 			validated.push(entry)
 		}
 

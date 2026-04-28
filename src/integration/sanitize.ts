@@ -193,16 +193,19 @@ function visitFeedElement(
 		hardenAnchor(node)
 		return undefined
 	}
+
 	if (node.tagName === 'iframe') {
 		const keep = isAllowedIframe(node)
 		if (!keep && parent !== undefined && typeof index === 'number') {
 			parent.children.splice(index, 1)
 			return [SKIP, index]
 		}
+
 		if (keep) {
 			delete node.properties.srcDoc
 		}
 	}
+
 	return undefined
 }
 
@@ -232,7 +235,10 @@ function rehypeFeedTransform() {
  * new tab.
  */
 function hardenAnchor(node: Element): void {
-	if (node.properties.target !== '_blank') return
+	if (node.properties.target !== '_blank') {
+		return
+	}
+
 	const existing = node.properties.rel
 	const rels = new Set<string>(
 		Array.isArray(existing)
@@ -249,14 +255,21 @@ function hardenAnchor(node: Element): void {
 /** True if the iframe's `src` is an https URL whose host is in the allowlist. */
 function isAllowedIframe(node: Element): boolean {
 	const { src } = node.properties
-	if (typeof src !== 'string' || src.length === 0) return false
+	if (typeof src !== 'string' || src.length === 0) {
+		return false
+	}
+
 	let url: URL
 	try {
 		url = new URL(src)
 	} catch {
 		return false
 	}
-	if (url.protocol !== 'https:') return false
+
+	if (url.protocol !== 'https:') {
+		return false
+	}
+
 	return ALLOWED_IFRAME_HOSTS.has(url.hostname)
 }
 
@@ -315,9 +328,13 @@ function findCommentDescendant(
 		if (child.nodeType === COMMENT_NODE && child.nodeValue?.trim() === text) {
 			return child
 		}
+
 		const nested = findCommentDescendant(child, text)
-		if (nested !== undefined) return nested
+		if (nested !== undefined) {
+			return nested
+		}
 	}
+
 	return undefined
 }
 
@@ -329,6 +346,7 @@ function findBoundaryNode(
 	if ('comment' in boundary) {
 		return findCommentDescendant(body, boundary.comment)
 	}
+
 	// Scoped to <body> so head elements never match.
 	return body.querySelector(boundary.selector) ?? undefined
 }
@@ -359,9 +377,15 @@ function truncateAtBoundary(
 	boundary: ExcerptBoundary | false,
 	permalink: string,
 ): void {
-	if (boundary === false) return
+	if (boundary === false) {
+		return
+	}
+
 	const marker = findBoundaryNode(document, boundary)
-	if (marker === undefined) return
+	if (marker === undefined) {
+		return
+	}
+
 	const { body } = document
 
 	// Phase A — at the marker's own level: drop everything after the marker,

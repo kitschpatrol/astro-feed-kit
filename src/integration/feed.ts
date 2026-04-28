@@ -10,42 +10,48 @@ import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
 
 /**
- * `astro:content` is a Vite virtual module — it only resolves inside code
- * that runs through Vite's module graph. We dynamically import it at call
- * time so the package's barrel can be loaded from `astro.config.ts` (where
- * Vite is not yet active) without crashing.
+ * `astro:content` is a Vite virtual module — it only resolves inside code that
+ * runs through Vite's module graph. We dynamically import it at call time so
+ * the package's barrel can be loaded from `astro.config.ts` (where Vite is not
+ * yet active) without crashing.
  */
 type AstroContentRender = typeof AstroContent.render
 
 /**
  * Upper bound on concurrent `buildItem` calls. The per-item pipeline is
- * CPU-bound (linkedom parse → Defuddle → unified) but async boundaries let
- * the event loop interleave work, and the `AstroContainer` is reentrant —
- * concurrent `renderToString` calls are how Astro's own SSR path already
- * runs. Eight is a deliberate cap: past that, resident memory during large
- * feed generation grows faster than throughput improves.
+ * CPU-bound (linkedom parse → Defuddle → unified) but async boundaries let the
+ * event loop interleave work, and the `AstroContainer` is reentrant —
+ * concurrent `renderToString` calls are how Astro's own SSR path already runs.
+ * Eight is a deliberate cap: past that, resident memory during large feed
+ * generation grows faster than throughput improves.
  */
 const MAX_CONCURRENCY = 8
 
 function maxDate(dates: Date[]): Date | undefined {
-	if (dates.length === 0) return undefined
+	if (dates.length === 0) {
+		return undefined
+	}
+
 	let max = dates[0]!
 	for (const date of dates) {
-		if (date.getTime() > max.getTime()) max = date
+		if (date.getTime() > max.getTime()) {
+			max = date
+		}
 	}
+
 	return max
 }
 
 /**
- * Run `fn` over `items` with at most `concurrency` tasks in flight. Results
- * are written into their original index, so the returned array mirrors the
- * input order regardless of task-completion order — important because the
- * default merged-item sort is stable, and callers rely on deterministic
- * output for equal sort keys.
+ * Run `fn` over `items` with at most `concurrency` tasks in flight. Results are
+ * written into their original index, so the returned array mirrors the input
+ * order regardless of task-completion order — important because the default
+ * merged-item sort is stable, and callers rely on deterministic output for
+ * equal sort keys.
  *
- * Fail-fast: the first rejection stops new tasks from starting and
- * propagates out. In-flight tasks run to completion (they can't be
- * cancelled), but no further work is dispatched.
+ * Fail-fast: the first rejection stops new tasks from starting and propagates
+ * out. In-flight tasks run to completion (they can't be cancelled), but no
+ * further work is dispatched.
  */
 async function mapConcurrent<T, R>(
 	items: readonly T[],
@@ -60,7 +66,10 @@ async function mapConcurrent<T, R>(
 	async function worker(): Promise<void> {
 		while (!failed) {
 			const index = cursor++
-			if (index >= items.length) return
+			if (index >= items.length) {
+				return
+			}
+
 			try {
 				results[index] = await fn(items[index]!)
 			} catch (error) {
@@ -71,7 +80,10 @@ async function mapConcurrent<T, R>(
 	}
 
 	const workers: Array<Promise<void>> = []
-	for (let w = 0; w < workerCount; w += 1) workers.push(worker())
+	for (let w = 0; w < workerCount; w += 1) {
+		workers.push(worker())
+	}
+
 	await Promise.all(workers)
 	return results
 }
@@ -132,6 +144,7 @@ async function buildItem(
 			`Failed to build feed item for ${entry.collection}/${entry.id}: ${result.error.message}`,
 		)
 	}
+
 	return result.data
 }
 
@@ -218,7 +231,9 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 	// user did not supply one. Must happen before the caller serializes.
 	if (feed.options.updated === undefined) {
 		const latest = maxDate(limited.map((item) => item.date))
-		if (latest !== undefined) feed.options.updated = latest
+		if (latest !== undefined) {
+			feed.options.updated = latest
+		}
 	}
 
 	return feed

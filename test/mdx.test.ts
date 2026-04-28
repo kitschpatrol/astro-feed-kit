@@ -46,7 +46,10 @@ const HTTP_OR_HTTPS = /^https?:\/\//
 
 /** Strip YAML frontmatter from a fixture body. */
 function stripFrontmatter(source: string): string {
-	if (!source.startsWith('---\n')) return source
+	if (!source.startsWith('---\n')) {
+		return source
+	}
+
 	const end = source.indexOf('\n---\n', 4)
 	return end === -1 ? source : source.slice(end + 5)
 }

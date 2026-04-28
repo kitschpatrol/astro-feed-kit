@@ -405,13 +405,13 @@ Astro component that emits `<link rel="alternate">` tags for the RSS, Atom, and 
 
 ## Maintainers
 
-[@kitschpatrol](https://github.com/kitschpatrol)
+[kitschpatrol](https://github.com/kitschpatrol)
 
 ## Acknowledgments
 
-[Jean-Philippe Monette](https://blogue.jpmonette.net/)'s [feed](https://github.com/jpmonette/feed) library made quick work of actually generating correct feeds from a common data model.
+[Jean-Philippe Monette's](https://blogue.jpmonette.net/) [feed](https://github.com/jpmonette/feed) library made quick work of actually generating correct feeds from a common data model.
 
-[Christian Praß](https://prass.tech/)'s blog post "[Astro RSS Feeds with Full MDX Content](https://prass.tech/blog/rss-full-content-rendering/)" was also helpful.
+[Christian Praß's](https://prass.tech/) blog post "[Astro RSS Feeds with Full MDX Content](https://prass.tech/blog/rss-full-content-rendering/)" was also helpful.
 
 Gratitude is always due to the [unified](https://unifiedjs.com) [team](https://github.com/unifiedjs/collective/?tab=readme-ov-file#unified-team) for [remark](https://remark.js.org) and their entire ecosystem of AST-wrangling libraries and tools.
 
@@ -419,7 +419,11 @@ Gratitude is always due to the [unified](https://unifiedjs.com) [team](https://g
 
 ## Contributing
 
-[Issues](https://github.com/kitschpatrol/astro-feed-kit/issues) and pull requests are welcome.
+[Issues](https://github.com/kitschpatrol/astro-feed-kit/issues) are welcome and appreciated.
+
+Please open an issue to discuss changes before submitting a pull request. Unsolicited PRs (especially AI-generated ones) are unlikely to be merged.
+
+This repository uses [@kitschpatrol/shared-config](https://github.com/kitschpatrol/shared-config) (via its `ksc` CLI) for linting and formatting, plus [MDAT](https://github.com/kitschpatrol/mdat) for readme placeholder expansion.
 
 <!-- /contributing -->
 
@@ -427,6 +431,6 @@ Gratitude is always due to the [unified](https://unifiedjs.com) [team](https://g
 
 ## License
 
-[MIT](license.txt) © Eric Mika
+[MIT](license.txt) © [Eric Mika](https://ericmika.com)
 
 <!-- /license -->

@@ -13,14 +13,14 @@ export function configSymbolKey(instanceId: string): string {
 }
 
 /**
- * Vite plugin that resolves `virtual:astro-feed-kit/config` and loads its
- * value from a `globalThis` slot keyed by `instanceId`. The slot is populated
- * synchronously by the integration factory inside `astro:config:setup`,
- * before Vite ever evaluates the virtual module.
+ * Vite plugin that resolves `virtual:astro-feed-kit/config` and loads its value
+ * from a `globalThis` slot keyed by `instanceId`. The slot is populated
+ * synchronously by the integration factory inside `astro:config:setup`, before
+ * Vite ever evaluates the virtual module.
  *
  * Closures and other non-serializable config fields cross the integration ↔
- * Vite boundary by reference because both sides share the same Node process
- * and therefore the same `globalThis`.
+ * Vite boundary by reference because both sides share the same Node process and
+ * therefore the same `globalThis`.
  */
 export function configBridgePlugin(instanceId: string): Plugin {
 	const symbolKey = configSymbolKey(instanceId)

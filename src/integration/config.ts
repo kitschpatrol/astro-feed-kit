@@ -258,8 +258,14 @@ function resolveFormatEntry(
 	value: boolean | string | undefined,
 	defaultName: string,
 ): string | undefined {
-	if (value === false) return undefined
-	if (value === undefined || value === true) return defaultName
+	if (value === false) {
+		return undefined
+	}
+
+	if (value === undefined || value === true) {
+		return defaultName
+	}
+
 	return value
 }
 
@@ -330,8 +336,11 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 	const formats: Partial<FormatFilenames> = {}
 	for (const kind of FORMAT_KINDS) {
 		const filename = resolveFormatEntry(input.formats?.[kind], DEFAULT_FORMATS[kind])
-		if (filename !== undefined) formats[kind] = filename
+		if (filename !== undefined) {
+			formats[kind] = filename
+		}
 	}
+
 	const knownRenderers = [...new Set([...DEFAULT_KNOWN_RENDERERS, ...(input.knownRenderers ?? [])])]
 
 	const { feedOptions: inputFeedOptions } = input
@@ -348,10 +357,16 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 		const feedLinks: Partial<FormatFilenames> = {}
 		for (const kind of FORMAT_KINDS) {
 			const filename = formats[kind]
-			if (filename !== undefined) feedLinks[kind] = joinUrl(siteLink, filename)
+			if (filename !== undefined) {
+				feedLinks[kind] = joinUrl(siteLink, filename)
+			}
 		}
+
 		feedOptions.feedLinks = feedLinks
-		if (formats.rss !== undefined) feedOptions.feed = joinUrl(siteLink, formats.rss)
+		if (formats.rss !== undefined) {
+			feedOptions.feed = joinUrl(siteLink, formats.rss)
+		}
+
 		feedOptions.id ??= siteLink
 	}
 

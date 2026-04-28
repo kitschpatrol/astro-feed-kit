@@ -47,12 +47,11 @@ const ENDPOINT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<
  * Astro integration that wires three prerendered feed endpoints (RSS, Atom,
  * JSON Feed) over a user-provided feed configuration.
  *
- * The integration serializes the resolved config into a `globalThis` slot
- * and exposes it to the injected endpoints via the
- * `virtual:astro-feed-kit/config` Vite virtual module. Closures and other
- * non-serializable resolver fields are passed by reference through that
- * slot — both the integration and the Vite-loaded endpoints run in the same
- * Node process.
+ * The integration serializes the resolved config into a `globalThis` slot and
+ * exposes it to the injected endpoints via the `virtual:astro-feed-kit/config`
+ * Vite virtual module. Closures and other non-serializable resolver fields are
+ * passed by reference through that slot — both the integration and the
+ * Vite-loaded endpoints run in the same Node process.
  */
 export default function feedKit(input: FeedKitConfig): AstroIntegration {
 	const instanceId = randomUUID()
@@ -96,7 +95,10 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 				const mountedPaths: string[] = []
 				for (const kind of ENDPOINT_KINDS) {
 					const filename = resolved.formats[kind]
-					if (filename === undefined) continue
+					if (filename === undefined) {
+						continue
+					}
+
 					const entrypoint = fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url))
 					injectRoute({
 						entrypoint,
@@ -120,13 +122,17 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 }
 
 function ensureFeedLink(input: FeedKitConfig, astroSite: string | undefined): FeedKitConfig {
-	if (input.feedOptions.link !== undefined) return input
+	if (input.feedOptions.link !== undefined) {
+		return input
+	}
+
 	if (astroSite === undefined) {
 		throw new Error(
 			'astro-feed-kit: feedOptions.link was not provided and astro config has no `site` URL set. ' +
 				'Set one or the other so per-item permalinks can be built.',
 		)
 	}
+
 	return {
 		...input,
 		feedOptions: {

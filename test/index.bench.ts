@@ -77,6 +77,7 @@ function buildArticleHtml(paragraphs: number): string {
 			parts.push(`<h2 id="section-${index}">Section ${index}</h2>`)
 		}
 	}
+
 	parts.push(
 		'<ul><li>one</li><li>two</li><li>three <a href="https://example.org" target="_blank">outbound</a></li></ul>',
 		'<table><thead><tr><th>a</th><th>b</th></tr></thead>' +
@@ -96,8 +97,11 @@ function buildArticleMarkdown(paragraphs: number): string {
 	const parts: string[] = ['# Sample article\n']
 	for (let index = 0; index < paragraphs; index += 1) {
 		parts.push(`${lorem} [link ${index}](https://example.org/${index}).\n`)
-		if (index % 3 === 0) parts.push(`## Section ${index}\n`)
+		if (index % 3 === 0) {
+			parts.push(`## Section ${index}\n`)
+		}
 	}
+
 	parts.push(
 		'- one\n- two\n- three\n',
 		'| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n',
@@ -274,6 +278,7 @@ function makeEntries(collection: string, count: number): FakeEntry[] {
 			id: `${collection}-${index}`,
 		})
 	}
+
 	return result
 }
 
@@ -335,7 +340,7 @@ const largeConfigWithResolver = defineFeedKitConfig({
 				),
 				description: (args.entry.data as { description?: string }).description,
 			}),
-		} as unknown as SourceInput,
+		},
 		source({ collection: 'notes-large' }),
 		source({ collection: 'links-large' }),
 	],
