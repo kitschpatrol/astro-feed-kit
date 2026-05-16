@@ -2,16 +2,7 @@ packages:
   - .
   - playground
   - playground-starlight
-
 ignoreWorkspaceRootCheck: true
-
-onlyBuiltDependencies:
-  - esbuild
-  - puppeteer
-  - sharp
-  - unrs-resolver
-  - ws
-
 publicHoistPattern:
   - '@kitschpatrol/repo-config'
   - '@kitschpatrol/typescript-config'
@@ -23,3 +14,9 @@ publicHoistPattern:
   - '*prettier*'
   - '*remark*'
   - '*stylelint*'
+allowBuilds:
+  esbuild: true
+  puppeteer: true
+  sharp: true
+  unrs-resolver: true
+  ws: true

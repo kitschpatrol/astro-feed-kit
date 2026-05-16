@@ -48,7 +48,7 @@
 		"play": "pnpm -C playground run dev",
 		"play-starlight": "pnpm -C playground-starlight run dev",
 		"prepublishOnly": "tsdown",
-		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') && pnpm publish",
+		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') pnpm publish",
 		"test": "vitest run"
 	},
 	"dependencies": {
@@ -64,26 +64,26 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.9",
-		"@kitschpatrol/shared-config": "^7.5.2",
+		"@kitschpatrol/shared-config": "^7.6.0",
 		"@types/hast": "3.0.4",
-		"@types/node": "~24.12.2",
-		"astro": "^6.1.10",
-		"bumpp": "^11.0.1",
+		"@types/node": "~24.12.4",
+		"astro": "^6.3.3",
+		"bumpp": "^11.1.0",
 		"defuddle": "^0.18.1",
 		"hast-util-sanitize": "5.0.2",
 		"linkedom": "^0.18.12",
 		"node-addon-api": "^8.7.0",
 		"node-gyp": "^12.3.0",
 		"shx": "^0.4.0",
-		"tsdown": "^0.21.10",
+		"tsdown": "^0.22.0",
 		"typescript": "~6.0.3",
-		"vite": "^7.3.2",
-		"vitest": "^4.1.5"
+		"vite": "^7.3.3",
+		"vitest": "^4.1.6"
 	},
 	"peerDependencies": {
 		"astro": "^6.0.0"
 	},
-	"packageManager": "pnpm@10.33.2",
+	"packageManager": "pnpm@11.1.2",
 	"engines": {
 		"node": ">=22.12.0"
 	},
