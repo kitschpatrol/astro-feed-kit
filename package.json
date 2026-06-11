@@ -1,6 +1,6 @@
 {
 	"name": "astro-feed-kit",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Astro integration for full-content RSS, Atom, and JSON feeds.",
 	"keywords": [
 		"astro",
