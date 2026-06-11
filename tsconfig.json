@@ -36,7 +36,14 @@
 		"**/node_modules/",
 		"./.astro",
 		"./playground/.astro",
-		"./playground/astro.config.ts"
+		"./playground/astro.config.ts",
+		// Starlight 0.40+ ships raw `.ts` sources whose Sätteri integration
+		// imports the optional `@astrojs/markdown-satteri` peer dependency.
+		// It's not installed here, so following this config's `@astrojs/starlight`
+		// import would fail type-checking inside node_modules. The Starlight
+		// playground's own `astro check` still covers its project files.
+		// See https://github.com/withastro/starlight/issues/3950
+		"./playground-starlight/astro.config.ts"
 	],
 	"mdx": {
 		"plugins": ["remark-directive", "remark-attribute-list"]

@@ -14,6 +14,8 @@ export default cspellConfig({
 		'prerendered',
 		'rels',
 		'rowspan',
+		'satteri',
+		'sätteri',
 		'ZZZBELOWZZZ',
 	],
 })
