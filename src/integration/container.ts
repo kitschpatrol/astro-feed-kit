@@ -64,11 +64,46 @@ function isModuleNotFound(error: unknown): boolean {
 }
 
 /**
+ * Resolve the file behind the first specifier that exists, or `undefined` when
+ * none do. Non-not-found resolution failures surface with context, attributed
+ * to `pkg`.
+ */
+function resolveFirstSpecifier(
+	requireFromRoot: NodeJS.Require,
+	specifiers: string[],
+	pkg: string,
+): string | undefined {
+	for (const specifier of specifiers) {
+		try {
+			return requireFromRoot.resolve(specifier)
+		} catch (error) {
+			if (isModuleNotFound(error)) {
+				continue
+			}
+
+			const message = error instanceof Error ? error.message : String(error)
+			throw new Error(
+				`astro-feed-kit: failed to resolve renderer package '${pkg}' (via '${specifier}'): ${message}`,
+				{ cause: error },
+			)
+		}
+	}
+
+	return undefined
+}
+
+/**
  * Probe each of `packages` for a `getContainerRenderer` export and return the
  * resulting `AstroRenderer` descriptors. Bare specifiers are resolved relative
  * to `projectRoot` (the consumer's project root, as a `file://` URL) so linked
  * or symlinked installs of `astro-feed-kit` still find renderer packages in the
  * consumer's `node_modules`.
+ *
+ * Each package is probed at its `<pkg>/container-renderer` entrypoint first —
+ * the dedicated export Astro 7 introduced — falling back to the package root
+ * for renderer packages that haven't adopted it. (Astro 7 deprecated calling
+ * `getContainerRenderer` from first-party package roots; probing the dedicated
+ * entrypoint avoids the runtime deprecation warning.)
  *
  * Missing packages are silently skipped — the point of this helper is to
  * discover whichever subset of known renderers the consumer installed. Other
@@ -90,18 +125,13 @@ export async function resolveContainerRenderers(
 	const requireFromRoot = createRequire(pathToFileURL(path.join(projectRoot, 'package.json')).href)
 
 	for (const pkg of packages) {
-		let resolvedPath: string
-		try {
-			resolvedPath = requireFromRoot.resolve(pkg)
-		} catch (error) {
-			if (isModuleNotFound(error)) {
-				continue
-			}
-
-			const message = error instanceof Error ? error.message : String(error)
-			throw new Error(`astro-feed-kit: failed to resolve renderer package '${pkg}': ${message}`, {
-				cause: error,
-			})
+		const resolvedPath = resolveFirstSpecifier(
+			requireFromRoot,
+			[`${pkg}/container-renderer`, pkg],
+			pkg,
+		)
+		if (resolvedPath === undefined) {
+			continue
 		}
 
 		let rendererModule: unknown

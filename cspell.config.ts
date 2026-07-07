@@ -3,8 +3,6 @@ import { cspellConfig } from '@kitschpatrol/cspell-config'
 export default cspellConfig({
 	ignorePaths: ['research/**'],
 	words: [
-		'codepen',
-		'codesandbox',
 		'defuddle',
 		'inlines',
 		'Inoreader',
@@ -13,9 +11,6 @@ export default cspellConfig({
 		'Praß',
 		'prerendered',
 		'rels',
-		'rowspan',
-		'satteri',
-		'sätteri',
 		'ZZZBELOWZZZ',
 	],
 })

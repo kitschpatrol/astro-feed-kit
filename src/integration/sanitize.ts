@@ -2,6 +2,7 @@
 
 import type { Element, Root } from 'hast'
 import type { Schema } from 'hast-util-sanitize'
+import type { BuildVisitor } from 'unist-util-visit'
 import { Defuddle } from 'defuddle/node'
 import { parseHTML } from 'linkedom'
 import rehypeRaw from 'rehype-raw'
@@ -182,13 +183,12 @@ type VisitResult = [typeof SKIP, number] | undefined
 
 /**
  * Visit callback used by `rehypeFeedTransform` — hoisted to avoid a per-call
- * closure.
+ * closure. Typed as `BuildVisitor` so the `parent` union tracks any hast
+ * augmentations present in the compilation (e.g. `mdast-util-mdx-jsx` adds MDX
+ * JSX element types to hast's content maps when MDX tooling is type-checked in
+ * the same program).
  */
-function visitFeedElement(
-	node: Element,
-	index: number | undefined,
-	parent: Element | Root | undefined,
-): VisitResult {
+const visitFeedElement: BuildVisitor<Root, 'element'> = (node, index, parent): VisitResult => {
 	if (node.tagName === 'a') {
 		hardenAnchor(node)
 		return undefined

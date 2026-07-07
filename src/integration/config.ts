@@ -166,7 +166,8 @@ export type FeedKitConfig = {
 	includeContent?: boolean
 	/**
 	 * Package names to probe for Astro renderers when `renderers` is not
-	 * explicitly supplied. Each package is imported and its
+	 * explicitly supplied. Each package's `<pkg>/container-renderer` entrypoint
+	 * (falling back to the package root) is imported and its
 	 * `getContainerRenderer()` export is called; packages that aren't installed
 	 * are skipped. Defaults cover the first-party Astro renderers
 	 * (`@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`,
@@ -189,7 +190,7 @@ export type FeedKitConfig = {
 	 * `generateFeed` outside the integration pipeline.
 	 *
 	 * @example
-	 * 	import { getContainerRenderer as mdxRenderer } from '@astrojs/mdx'
+	 * 	import { getContainerRenderer as mdxRenderer } from '@astrojs/mdx/container-renderer'
 	 * 	feedKit({ renderers: [mdxRenderer()], ... })
 	 */
 	renderers?: AstroRenderer[]
