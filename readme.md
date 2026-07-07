@@ -165,7 +165,7 @@ feedKit({
       limit: 20,
       // Flat slugs: /my-post/ instead of /posts/my-post/
       resolveItem: ({ entry, siteUrl }) => ({
-        link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).toString(),
+        link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href,
       }),
     },
     'notes',
@@ -329,13 +329,13 @@ import { docsSchema } from '@astrojs/starlight/schema'
 import { defineCollection } from 'astro:content'
 import { z } from 'astro/zod'
 
+const dateSchema = z.coerce.date().optional()
+
 export const collections = {
   docs: defineCollection({
     loader: docsLoader(),
     schema: docsSchema({
-      extend: z.object({
-        date: z.coerce.date().optional(),
-      }),
+      extend: z.object({ date: dateSchema }),
     }),
   }),
 }
@@ -363,10 +363,7 @@ export default defineConfig({
           collection: 'docs',
           filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
           resolveItem: ({ entry, siteUrl }) => ({
-            link: new URL(
-              `${entry.id}/`,
-              siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
-            ).toString(),
+            link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href,
           }),
         },
       ],

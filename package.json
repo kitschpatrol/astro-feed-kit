@@ -42,17 +42,16 @@
 		"bench:baseline": "vitest bench --run --outputJson test/benchmarks/baseline.json",
 		"build": "tsdown && pnpm astro sync && pnpm run -r astro sync",
 		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
-		"dev": "pnpm run play",
+		"dev": "pnpm -C playground run dev",
+		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint && pnpm run -r --include-workspace-root astro check",
-		"play": "pnpm -C playground run dev",
-		"play-starlight": "pnpm -C playground-starlight run dev",
 		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') pnpm publish",
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"feed": "^5.2.1",
+		"feed": "^6.0.0",
 		"rehype-raw": "7.0.0",
 		"rehype-sanitize": "6.0.0",
 		"rehype-stringify": "10.0.1",
@@ -64,10 +63,10 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.9",
-		"@kitschpatrol/shared-config": "^7.6.4",
+		"@kitschpatrol/shared-config": "^8.0.0",
 		"@types/hast": "3.0.4",
 		"@types/node": "~24.12.4",
-		"astro": "^7.0.3",
+		"astro": "^7.0.6",
 		"bumpp": "^11.1.0",
 		"defuddle": "^0.19.1",
 		"hast-util-sanitize": "5.0.2",
@@ -83,14 +82,14 @@
 	"peerDependencies": {
 		"astro": "^7.0.0"
 	},
-	"packageManager": "pnpm@11.9.0",
+	"packageManager": "pnpm@11.10.0",
 	"engines": {
 		"node": ">=22.12.0"
 	},
 	"devEngines": {
 		"runtime": {
 			"name": "node",
-			"version": ">=24.12.0"
+			"version": ">=24.16.0"
 		}
 	}
 }

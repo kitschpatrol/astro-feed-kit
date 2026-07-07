@@ -36,10 +36,7 @@ export default defineConfig({
 					// links should drop the `docs/` collection prefix feed-kit uses by
 					// default (`{siteUrl}/{collection}/{entry.id}/`).
 					resolveItem: ({ entry, siteUrl }) => ({
-						link: new URL(
-							`${entry.id}/`,
-							siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`,
-						).toString(),
+						link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href,
 					}),
 				},
 			],

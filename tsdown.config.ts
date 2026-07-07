@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig({
 	deps: {
-		neverBundle: [/^astro:/, /^virtual:/],
+		neverBundle: [/^astro:/v, /^virtual:/v],
 	},
 	dts: true,
 	entry: [

@@ -11,7 +11,7 @@ function readField(data: unknown, key: string): unknown {
 	// is intentional — entry.data is a declared-schema union, but for
 	// site-agnostic filter defaults we need to probe common fields by
 	// name without per-collection branches.
-	// eslint-disable-next-line ts/no-unsafe-type-assertion
+
 	return (data as Record<string, unknown>)[key]
 }
 
@@ -20,11 +20,7 @@ function defaultEligibilityFilter(entry: CollectionEntry<CollectionKey>): boolea
 	// Astro blog templates and ports of the Hugo/Jekyll frontmatter idiom.
 	// Collections that don't declare the field are unaffected — it reads as
 	// undefined and passes the check.
-	if (readField(entry.data, 'draft') === true) {
-		return false
-	}
-
-	return true
+	return readField(entry.data, 'draft') !== true
 }
 
 /**

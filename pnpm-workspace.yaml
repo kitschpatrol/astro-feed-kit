@@ -20,3 +20,8 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   ws: true
+minimumReleaseAgeExclude:
+  - '@astrojs/*'
+  - '@kitschpatrol/*'
+  - astro
+  - feed

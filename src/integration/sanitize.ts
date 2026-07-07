@@ -177,7 +177,7 @@ const feedSchema: Schema = {
 }
 
 /** Whitespace split pattern for existing `rel` string values. */
-const REL_SPLIT = /\s+/
+const REL_SPLIT = /\s+/v
 
 type VisitResult = [typeof SKIP, number] | undefined
 
@@ -405,8 +405,9 @@ function truncateAtBoundary(
 	}
 
 	// Phase C — append a "read more" link if configured.
-	if (boundary.readMore) {
-		const text = typeof boundary.readMore === 'string' ? boundary.readMore : DEFAULT_READ_MORE_TEXT
+	const { readMore } = boundary
+	if (readMore !== undefined && readMore !== false && readMore !== '') {
+		const text = typeof readMore === 'string' ? readMore : DEFAULT_READ_MORE_TEXT
 		const p = document.createElement('p')
 		const a = document.createElement('a')
 		a.setAttribute('href', permalink)

@@ -223,7 +223,7 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 		// (`field?: T`), while the schema-inferred `Item` shape carries
 		// `field?: T | undefined`. Semantically identical; cast at the
 		// library boundary.
-		// eslint-disable-next-line ts/no-unsafe-type-assertion
+
 		feed.addItem(item as Parameters<typeof feed.addItem>[0])
 	}
 

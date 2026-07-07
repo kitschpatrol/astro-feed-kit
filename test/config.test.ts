@@ -1,4 +1,3 @@
-/* eslint-disable ts/no-unsafe-type-assertion */
 import { describe, expect, it } from 'vitest'
 import type { SourceInput } from '../src/integration/config'
 import { defaultItemSort, defineFeedKitConfig, getFeedPath } from '../src/integration/config'

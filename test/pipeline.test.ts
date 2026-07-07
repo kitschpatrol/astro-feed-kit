@@ -1,5 +1,3 @@
-/* eslint-disable ts/no-unsafe-type-assertion */
-
 // Exercises `generateFeed` end-to-end without booting Astro. `astro:content`
 // is mocked to return a deterministic set of entries per collection so the
 // test controls exactly what the pipeline sees. `includeContent: false`
@@ -31,7 +29,7 @@ type FakeSource = {
 	sort?: (a: FakeEntry, b: FakeEntry) => number
 }
 
-const EXAMPLE_LINK_RE = /^https:\/\/example\.com\//
+const EXAMPLE_LINK_RE = /^https:\/\/example\.com\//v
 
 const entryStore = new Map<string, FakeEntry[]>()
 
@@ -57,7 +55,7 @@ vi.mock('astro:content', () => ({
 	},
 }))
 
-function entry(collection: string, id: string, data: Record<string, unknown>): FakeEntry {
+function makeEntry(collection: string, id: string, data: Record<string, unknown>): FakeEntry {
 	return { collection, data, id }
 }
 
@@ -74,11 +72,11 @@ beforeEach(() => {
 describe('pipeline: per-source behavior', () => {
 	it('per-source filter narrows only that source', async () => {
 		setCollection('posts', [
-			entry('posts', 'a', { date: new Date('2026-01-01'), title: 'A' }),
-			entry('posts', 'b', { archived: true, date: new Date('2026-02-01'), title: 'B' }),
+			makeEntry('posts', 'a', { date: new Date('2026-01-01'), title: 'A' }),
+			makeEntry('posts', 'b', { archived: true, date: new Date('2026-02-01'), title: 'B' }),
 		])
 		setCollection('notes', [
-			entry('notes', 'c', { archived: true, date: new Date('2026-03-01'), title: 'C' }),
+			makeEntry('notes', 'c', { archived: true, date: new Date('2026-03-01'), title: 'C' }),
 		])
 
 		const config = defineFeedKitConfig({
@@ -104,9 +102,9 @@ describe('pipeline: per-source behavior', () => {
 
 	it('per-source sort + limit cap that source independently before merge', async () => {
 		setCollection('posts', [
-			entry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
-			entry('posts', 'p2', { date: new Date('2026-02-01'), title: 'P2' }),
-			entry('posts', 'p3', { date: new Date('2026-03-01'), title: 'P3' }),
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+			makeEntry('posts', 'p2', { date: new Date('2026-02-01'), title: 'P2' }),
+			makeEntry('posts', 'p3', { date: new Date('2026-03-01'), title: 'P3' }),
 		])
 
 		const config = defineFeedKitConfig({
@@ -129,8 +127,12 @@ describe('pipeline: per-source behavior', () => {
 
 describe('pipeline: top-level sort and limit on merged items', () => {
 	it('top-level sort reorders the merged item set and receives Item shape', async () => {
-		setCollection('posts', [entry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' })])
-		setCollection('notes', [entry('notes', 'n1', { date: new Date('2026-02-01'), title: 'N1' })])
+		setCollection('posts', [
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+		])
+		setCollection('notes', [
+			makeEntry('notes', 'n1', { date: new Date('2026-02-01'), title: 'N1' }),
+		])
 
 		let seenItemShape: Item | undefined
 		const config = defineFeedKitConfig({
@@ -155,12 +157,12 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 
 	it('top-level limit caps merged set after per-source limits', async () => {
 		setCollection('posts', [
-			entry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
-			entry('posts', 'p2', { date: new Date('2026-02-01'), title: 'P2' }),
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+			makeEntry('posts', 'p2', { date: new Date('2026-02-01'), title: 'P2' }),
 		])
 		setCollection('notes', [
-			entry('notes', 'n1', { date: new Date('2026-03-01'), title: 'N1' }),
-			entry('notes', 'n2', { date: new Date('2026-04-01'), title: 'N2' }),
+			makeEntry('notes', 'n1', { date: new Date('2026-03-01'), title: 'N1' }),
+			makeEntry('notes', 'n2', { date: new Date('2026-04-01'), title: 'N2' }),
 		])
 
 		const config = defineFeedKitConfig({
@@ -181,7 +183,7 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 describe('pipeline: per-source resolveItem', () => {
 	it('per-source resolveItem output replaces fields the default filled in', async () => {
 		setCollection('posts', [
-			entry('posts', 'p1', {
+			makeEntry('posts', 'p1', {
 				date: new Date('2026-01-01'),
 				summary: 'override summary',
 				title: 'P1',
@@ -207,7 +209,9 @@ describe('pipeline: per-source resolveItem', () => {
 	})
 
 	it('string shorthand sources expand to default behavior', async () => {
-		setCollection('posts', [entry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' })])
+		setCollection('posts', [
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+		])
 
 		const config = defineFeedKitConfig({
 			feedOptions: baseFeedOptions,

@@ -26,14 +26,14 @@ export function configBridgePlugin(instanceId: string): Plugin {
 	const symbolKey = configSymbolKey(instanceId)
 	return {
 		load: {
-			filter: { id: new RegExp(String.raw`^\0${escapeRegex(VIRTUAL_MODULE_ID)}$`) },
+			filter: { id: new RegExp(String.raw`^\0${escapeRegex(VIRTUAL_MODULE_ID)}$`, 'v') },
 			handler() {
 				return `export default globalThis[Symbol.for(${JSON.stringify(symbolKey)})]`
 			},
 		},
 		name: `astro-feed-kit:config:${instanceId}`,
 		resolveId: {
-			filter: { id: new RegExp(`^${escapeRegex(VIRTUAL_MODULE_ID)}$`) },
+			filter: { id: new RegExp(`^${escapeRegex(VIRTUAL_MODULE_ID)}$`, 'v') },
 			handler() {
 				return RESOLVED_VIRTUAL_MODULE_ID
 			},
@@ -42,5 +42,5 @@ export function configBridgePlugin(instanceId: string): Plugin {
 }
 
 function escapeRegex(value: string): string {
-	return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
+	return value.replaceAll(/[.*+?^$\{\}\(\)\|\[\]\\]/gv, String.raw`\$&`)
 }

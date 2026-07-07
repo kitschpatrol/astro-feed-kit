@@ -4,9 +4,9 @@ import type { Item } from './schemas'
 function slugify(text: string): string {
 	return text
 		.toLowerCase()
-		.replaceAll(/[^\w\s-]/g, '')
-		.replaceAll(/\s+/g, '-')
-		.replaceAll(/-+/g, '-')
+		.replaceAll(/[^\w\s\-]/gv, '')
+		.replaceAll(/\s+/gv, '-')
+		.replaceAll(/-+/gv, '-')
 		.trim()
 }
 
@@ -21,7 +21,7 @@ function readField(data: unknown, key: string): unknown {
 
 	// Narrowed to a non-null object; default resolvers read common fields by
 	// name across arbitrary collection schemas.
-	// eslint-disable-next-line ts/no-unsafe-type-assertion
+
 	return (data as Record<string, unknown>)[key]
 }
 
@@ -80,7 +80,7 @@ export function defaultItemResolver({ entry, siteUrl }: ItemResolverArgs): Parti
 	const category = categoryFromTags(readField(data, 'tags'))
 
 	const result: Partial<Item> = {
-		link: new URL(`${entry.collection}/${entry.id}/`, ensureTrailingSlash(siteUrl)).toString(),
+		link: new URL(`${entry.collection}/${entry.id}/`, ensureTrailingSlash(siteUrl)).href,
 	}
 	if (title !== undefined) {
 		result.title = title
@@ -115,6 +115,7 @@ function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Pa
 	// `resolveItem` overlay is present; the field set is small, but this
 	// runs once per entry.
 	const higherRecord = higher as Record<string, unknown>
+	// eslint-disable-next-line unicorn/prefer-object-iterable-methods
 	for (const key of Object.keys(higherRecord)) {
 		const value = higherRecord[key]
 		if (value === undefined) {
@@ -170,12 +171,12 @@ export function tagCategoryResolver(options: {
 			return {}
 		}
 
-		const base = new URL(options.basePath, ensureTrailingSlash(siteUrl)).toString()
+		const base = new URL(options.basePath, ensureTrailingSlash(siteUrl)).href
 		return {
 			category: tags.map((name) => {
 				const term = slugify(name)
 				return {
-					domain: new URL(term, ensureTrailingSlash(base)).toString(),
+					domain: new URL(term, ensureTrailingSlash(base)).href,
 					name,
 					term,
 				}

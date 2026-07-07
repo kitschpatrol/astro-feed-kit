@@ -1,5 +1,3 @@
-/* eslint-disable ts/no-unsafe-type-assertion */
-
 // Performance benchmarks for the feed-generation hot paths.
 //
 // Scope:

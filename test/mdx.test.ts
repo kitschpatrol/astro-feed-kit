@@ -1,5 +1,3 @@
-// `rel` is an HTML attribute name, not a meaningful abbreviation.
-/* eslint-disable unicorn/prevent-abbreviations */
 // End-to-end coverage: read an MDX fixture, compile it to HTML the same way
 // Astro + @astrojs/mdx does for static content (remark-parse → remark-gfm →
 // remark-rehype(allowDangerousHtml) → rehype-raw → rehype-stringify), hand
@@ -35,14 +33,14 @@ const FIXTURE_BASE = new URL('fixtures/mdx/', import.meta.url)
 const PERMALINK = 'https://example.com/posts/fixture/'
 
 // Module-scope regexes (lint: prefer-static-regex).
-const INLINE_EVENT_HANDLER = /\son\w+=/
-const HREF_JAVASCRIPT = /href="javascript:/
-const HREF_DATA = /href="data:/
-const HREF_FILE = /href="file:/
-const HREF_VBSCRIPT = /href="vbscript:/
-const INLINE_STYLE_ATTR = /\sstyle=/
-const SAFE_EMBED_SRC = /^https:\/\/(www\.youtube\.com|player\.vimeo\.com)\//
-const HTTP_OR_HTTPS = /^https?:\/\//
+const INLINE_EVENT_HANDLER = /\son\w+=/v
+const HREF_JAVASCRIPT = /href="javascript:/v
+const HREF_DATA = /href="data:/v
+const HREF_FILE = /href="file:/v
+const HREF_VBSCRIPT = /href="vbscript:/v
+const INLINE_STYLE_ATTR = /\sstyle=/v
+const SAFE_EMBED_SRC = /^https:\/\/(www\.youtube\.com|player\.vimeo\.com)\//v
+const HTTP_OR_HTTPS = /^https?:\/\//v
 
 /** Strip YAML frontmatter from a fixture body. */
 function stripFrontmatter(source: string): string {
@@ -155,9 +153,9 @@ describe('e2e: MDX fixtures through the full sanitize pipeline', () => {
 		// hardened with noopener + noreferrer. Either outcome is acceptable;
 		// what's unacceptable is a target=_blank without those rels.
 		for (const anchor of doc.querySelectorAll('a[target="_blank"]')) {
-			const rel = anchor.getAttribute('rel') ?? ''
-			expect(rel).toContain('noopener')
-			expect(rel).toContain('noreferrer')
+			const relationship = anchor.getAttribute('rel') ?? ''
+			expect(relationship).toContain('noopener')
+			expect(relationship).toContain('noreferrer')
 		}
 	})
 

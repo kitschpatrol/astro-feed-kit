@@ -1,4 +1,3 @@
-/* eslint-disable ts/no-unsafe-type-assertion */
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import { describe, expect, it } from 'vitest'
 import type { ItemResolverArgs } from '../src/integration/config'
@@ -151,8 +150,9 @@ describe('tagCategoryResolver', () => {
 
 	it('returns an empty object when tags are absent or empty', () => {
 		const build = tagCategoryResolver({ basePath: '/tags/' })
-		expect(build(makeArgs({ date: new Date(), title: 'T' }))).toEqual({})
-		expect(build(makeArgs({ date: new Date(), tags: [], title: 'T' }))).toEqual({})
+		const date = new Date()
+		expect(build(makeArgs({ date, title: 'T' }))).toEqual({})
+		expect(build(makeArgs({ date, tags: [], title: 'T' }))).toEqual({})
 	})
 
 	it('spreads cleanly inside a source resolveItem to replace the default categories', () => {

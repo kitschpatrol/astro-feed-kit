@@ -4,16 +4,16 @@ import { markdownToHtml, sanitizeHtml } from '../src/integration/sanitize'
 const PERMALINK = 'https://example.com/post'
 
 // Static regexes hoisted to module scope (lint: prefer-static-regex).
-const COLSPAN_2 = /colspan="?2"?/
-const ROWSPAN_2 = /rowspan="?2"?/
-const INPUT_DISABLED_CHECKBOX = /<input disabled type="checkbox">/
-const TYPE_TEXT = /type="text"/
-const CHECKBOX_INPUT = /<input[^>]*type="checkbox"[^>]*>/
-const DISABLED_INPUT = /<input[^>]*disabled[^>]*>/
-const TARGET_BLANK = /target="_blank"/
-const REL_HAS_NOOPENER = /rel="[^"]*noopener[^"]*"/
-const REL_HAS_NOREFERRER = /rel="[^"]*noreferrer[^"]*"/
-const HREF_DATA_SCHEME = /href="data:/
+const COLSPAN_2 = /colspan="?2"?/v
+const ROWSPAN_2 = /rowspan="?2"?/v
+const INPUT_DISABLED_CHECKBOX = /<input disabled type="checkbox">/v
+const TYPE_TEXT = /type="text"/v
+const CHECKBOX_INPUT = /<input[^>]*type="checkbox"[^>]*>/v
+const DISABLED_INPUT = /<input[^>]*disabled[^>]*>/v
+const TARGET_BLANK = /target="_blank"/v
+const REL_HAS_NOOPENER = /rel="[^"]*noopener[^"]*"/v
+const REL_HAS_NOREFERRER = /rel="[^"]*noreferrer[^"]*"/v
+const HREF_DATA_SCHEME = /href="data:/v
 // Built from parts so `no-script-url` doesn't flag the literal string.
 const JAVASCRIPT_SCHEME = ['java', 'script:'].join('')
 
@@ -250,6 +250,8 @@ describe('markdownToHtml: allowlist', () => {
 	})
 
 	it('drops iframes with non-https schemes even on allowlisted hosts', async () => {
+		// The insecure scheme is the subject under test.
+		// eslint-disable-next-line unicorn/prefer-https
 		const md = `<iframe src="http://www.youtube.com/embed/abc"></iframe>
 `
 		const out = await markdownToHtml(md)

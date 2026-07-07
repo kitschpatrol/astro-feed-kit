@@ -57,9 +57,8 @@ function isModuleNotFound(error: unknown): boolean {
 
 	const { code } = error
 	return (
-		code === 'ERR_MODULE_NOT_FOUND' ||
-		code === 'MODULE_NOT_FOUND' ||
-		code === 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+		typeof code === 'string' &&
+		['ERR_MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED', 'MODULE_NOT_FOUND'].includes(code)
 	)
 }
 

@@ -304,7 +304,7 @@ function normalizeSource(input: SourceInput): Source {
 		// `CollectionKey` is a compile-time union of declared collection names;
 		// at runtime it's just `string`. Mirrors the cast at the `getCollection`
 		// call site in `collection.ts`.
-		// eslint-disable-next-line ts/no-unsafe-type-assertion
+
 		return { collection: input as CollectionKey }
 	}
 
@@ -314,7 +314,7 @@ function normalizeSource(input: SourceInput): Source {
 function joinUrl(base: string, path: string): string {
 	// Using URL keeps trailing-slash and leading-slash ambiguity handled by
 	// the runtime instead of ad-hoc string concatenation.
-	return new URL(path, base.endsWith('/') ? base : `${base}/`).toString()
+	return new URL(path, base.endsWith('/') ? base : `${base}/`).href
 }
 
 /**
