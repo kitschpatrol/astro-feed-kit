@@ -1,43 +1,22 @@
 {
-	"extends": "@kitschpatrol/typescript-config",
+	"extends": "@kitschpatrol/typescript-config/astro",
 	"compilerOptions": {
-		// Additions and changes from Astro's strictest tsconfig
-		// vs. the extended @kitschpatrol/typescript-config
-		"target": "ESNext",
-		"jsx": "preserve",
-		"jsxImportSource": "astro",
-		"allowUnusedLabels": false,
-		"exactOptionalPropertyTypes": true,
-		"noImplicitOverride": true,
-		"noImplicitReturns": true,
-		"noUncheckedIndexedAccess": true,
-		"noEmit": true,
-		"esModuleInterop": true,
-		"verbatimModuleSyntax": true
+		"types": ["node", "hast"]
 	},
-	// Includes project dot-files files for typescript-eslint integration.
 	// Playground workspaces each declare their own `astro:content`
 	// `DataEntryMap`. Because it's a type alias (not an interface), multiple
 	// declarations can't merge — TS arbitrarily picks one and the other
 	// workspace's collection literals fail to type-check. We keep
-	// `playground-starlight`'s types.d.ts (so `CollectionKey` resolves to a
-	// non-empty union at the root, which `src/` needs) and exclude the
+	// `playground-starlight`'s generated types (so `CollectionKey` resolves to
+	// a non-empty union at the root, which `src/` needs) and exclude the
 	// `playground` workspace entirely. Each playground runs its own
 	// `astro check` independently, so playground coverage isn't lost.
 	"include": [
-		"**/*",
 		"**/**.*",
 		"./playground-starlight/.astro/types.d.ts",
 		"./playground-starlight/.astro/content.d.ts"
 	],
-	"exclude": [
-		"**/dist/",
-		"**/bin/",
-		"**/node_modules/",
-		"./.astro",
-		"./playground/.astro",
-		"./playground/astro.config.ts"
-	],
+	"exclude": ["**/dist/", "**/bin/", "**/node_modules/", "./.astro", "./playground"],
 	"mdx": {
 		"plugins": ["remark-directive", "remark-attribute-list"]
 	}

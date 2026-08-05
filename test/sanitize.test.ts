@@ -193,9 +193,7 @@ describe('markdownToHtml: allowlist', () => {
 		// other text-input attrs are stripped, so the survivor is inert.
 		expect(out).not.toContain('name="x"')
 		expect(out).not.toMatch(TYPE_TEXT)
-		if (out.includes('<input')) {
-			expect(out).toMatch(INPUT_DISABLED_CHECKBOX)
-		}
+		expect(out).toMatch(INPUT_DISABLED_CHECKBOX)
 	})
 
 	it('renders GFM task list items as disabled checkboxes', async () => {

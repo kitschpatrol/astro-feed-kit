@@ -40,12 +40,12 @@
 	"scripts": {
 		"bench": "vitest bench --run --compare test/benchmarks/baseline.json",
 		"bench:baseline": "vitest bench --run --outputJson test/benchmarks/baseline.json",
-		"build": "tsdown && pnpm astro sync && pnpm run -r astro sync",
+		"build": "tsdown && pnpm run -r astro sync",
 		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
 		"dev": "pnpm -C playground run dev",
 		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
-		"lint": "ksc lint && pnpm run -r --include-workspace-root astro check",
+		"lint": "ksc lint",
 		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') pnpm publish",
 		"test": "vitest run"
@@ -62,34 +62,28 @@
 		"unist-util-visit": "5.1.0"
 	},
 	"devDependencies": {
-		"@astrojs/check": "^0.9.9",
-		"@kitschpatrol/shared-config": "^8.0.0",
+		"@astrojs/check": "^0.9.10",
+		"@kitschpatrol/shared-config": "^8.6.0",
 		"@types/hast": "3.0.4",
-		"@types/node": "~24.12.4",
-		"astro": "^7.0.6",
-		"bumpp": "^11.1.0",
-		"defuddle": "^0.19.1",
+		"@types/node": "~24.13.3",
+		"astro": "^7.1.6",
+		"bumpp": "^12.1.1",
+		"defuddle": "^0.19.2",
 		"hast-util-sanitize": "5.0.2",
-		"linkedom": "^0.18.12",
+		"linkedom": "^0.18.13",
 		"node-addon-api": "^8.9.0",
-		"node-gyp": "^13.0.0",
+		"node-gyp": "^13.0.1",
 		"shx": "^0.4.0",
-		"tsdown": "^0.22.3",
+		"tsdown": "^0.22.14",
 		"typescript": "~6.0.3",
-		"vite": "^8.1.0",
-		"vitest": "^4.1.9"
+		"vite": "^8.2.0",
+		"vitest": "^4.1.10"
 	},
 	"peerDependencies": {
 		"astro": "^7.0.0"
 	},
-	"packageManager": "pnpm@11.10.0",
+	"packageManager": "pnpm@11.18.0",
 	"engines": {
-		"node": ">=22.12.0"
-	},
-	"devEngines": {
-		"runtime": {
-			"name": "node",
-			"version": ">=24.16.0"
-		}
+		"node": ">=24.16.0"
 	}
 }

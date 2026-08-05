@@ -224,7 +224,7 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 		// `field?: T | undefined`. Semantically identical; cast at the
 		// library boundary.
 
-		feed.addItem(item as Parameters<typeof feed.addItem>[0])
+		feed.addItem(item)
 	}
 
 	// Dynamic resolution: default `updated` to the newest item date when the

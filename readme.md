@@ -6,8 +6,8 @@
 
 <!-- badges -->
 
-[![NPM Package astro-feed-kit](https://img.shields.io/npm/v/astro-feed-kit.svg)](https://npmjs.com/package/astro-feed-kit)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit/)
+[![NPM Package astro-feed-kit](https://img.shields.io/npm/v/astro-feed-kit.svg)](https://www.npmjs.com/package/astro-feed-kit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit)
 [![CI](https://github.com/kitschpatrol/astro-feed-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/kitschpatrol/astro-feed-kit/actions/workflows/ci.yml)
 
 <!-- /badges -->
@@ -47,7 +47,7 @@ It covers:
 
 ### Prerequisites
 
-An [Astro](https://astro.build/) 6+ project with at least one [content collection](https://docs.astro.build/en/guides/content-collections/) whose entries carry a `title` and a `date`.
+An [Astro](https://astro.build/) 7+ project with at least one [content collection](https://docs.astro.build/en/guides/content-collections/) whose entries carry a `title` and a `date`.
 
 ### Installation
 

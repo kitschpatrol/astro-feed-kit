@@ -18,23 +18,17 @@
 		"preview": "poptab && astro preview --open"
 	},
 	"devDependencies": {
-		"@astrojs/check": "^0.9.9",
-		"@astrojs/mdx": "^7.0.2",
-		"@astrojs/starlight": "^0.41.3",
-		"@types/node": "~25.5.2",
-		"astro": "^7.0.6",
+		"@astrojs/check": "^0.9.10",
+		"@astrojs/mdx": "^7.0.5",
+		"@astrojs/starlight": "^0.41.7",
+		"@types/node": "~24.13.3",
+		"astro": "^7.1.6",
 		"astro-feed-kit": "link:..",
-		"poptab": "^1.1.1",
-		"sharp": "^0.35.2",
+		"poptab": "^1.1.2",
+		"sharp": "^0.35.3",
 		"shx": "^0.4.0"
 	},
 	"engines": {
-		"node": ">=20.19.0"
-	},
-	"devEngines": {
-		"runtime": {
-			"name": "node",
-			"version": ">=22.18.0"
-		}
+		"node": ">=24.16.0"
 	}
 }
