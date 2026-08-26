@@ -176,9 +176,6 @@ const feedSchema: Schema = {
 	],
 }
 
-/** Whitespace split pattern for existing `rel` string values. */
-const REL_SPLIT = /\s+/v
-
 type VisitResult = [typeof SKIP, number] | undefined
 
 /**
@@ -239,14 +236,8 @@ function hardenAnchor(node: Element): void {
 		return
 	}
 
-	const existing = node.properties.rel
-	const rels = new Set<string>(
-		Array.isArray(existing)
-			? existing.map(String)
-			: typeof existing === 'string'
-				? existing.split(REL_SPLIT).filter(Boolean)
-				: [],
-	)
+	// Always an array (or absent) — hast normalizes `rel` to a token list.
+	const rels = new Set(node.properties.rel)
 	rels.add('noopener')
 	rels.add('noreferrer')
 	node.properties.rel = [...rels]

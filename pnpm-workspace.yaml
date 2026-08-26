@@ -22,6 +22,16 @@ allowBuilds:
   ws: true
 minimumReleaseAgeExclude:
   - '@astrojs/*'
+  - '@cspell/*'
   - '@kitschpatrol/*'
   - astro
-  - feed
+  - astro-mdx-kit
+  - cspell
+  - cspell-config-lib
+  - cspell-dictionary
+  - cspell-gitignore
+  - cspell-glob
+  - cspell-grammar
+  - cspell-io
+  - cspell-lib
+  - cspell-trie-lib

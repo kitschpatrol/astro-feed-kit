@@ -47,7 +47,7 @@
 		"fix": "ksc fix",
 		"lint": "ksc lint",
 		"prepublishOnly": "tsdown",
-		"release": "bumpp --commit 'Release: %s' && pnpm build && NPM_AUTH_TOKEN=$(op read 'op://Personal/npm/token') pnpm publish",
+		"release": "bumpp --commit 'Release: %s' && pnpm build && pnpm publish --otp $(op item get npm --otp)",
 		"test": "vitest run"
 	},
 	"dependencies": {
@@ -63,21 +63,21 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@kitschpatrol/shared-config": "^8.6.0",
-		"@types/hast": "3.0.4",
+		"@kitschpatrol/shared-config": "^8.7.0",
+		"@types/hast": "3.0.5",
 		"@types/node": "~24.13.3",
-		"astro": "^7.1.6",
-		"bumpp": "^12.1.1",
-		"defuddle": "^0.19.2",
+		"astro": "^7.2.7",
+		"bumpp": "^12.2.1",
+		"defuddle": "^0.19.3",
 		"hast-util-sanitize": "5.0.2",
 		"linkedom": "^0.18.13",
-		"node-addon-api": "^8.9.0",
+		"node-addon-api": "^8.9.2",
 		"node-gyp": "^13.0.1",
 		"shx": "^0.4.0",
 		"tsdown": "^0.22.14",
 		"typescript": "~6.0.3",
-		"vite": "^8.2.0",
-		"vitest": "^4.1.10"
+		"vite": "^8.2.2",
+		"vitest": "^4.1.11"
 	},
 	"peerDependencies": {
 		"astro": "^7.0.0"
