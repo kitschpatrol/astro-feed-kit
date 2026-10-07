@@ -50,11 +50,7 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
 	}
 
 	const tags = value.filter((tag): tag is string => typeof tag === 'string')
-	if (tags.length === 0) {
-		return undefined
-	}
-
-	return tags.map((name) => ({ name, term: slugify(name) }))
+	return tags.length === 0 ? undefined : tags.map((name) => ({ name, term: slugify(name) }))
 }
 
 /**
@@ -140,11 +136,9 @@ export function resolveItemFields(
 	sourceResolveItem?: ItemResolver,
 ): Partial<Item> {
 	const base = defaultItemResolver(args)
-	if (sourceResolveItem === undefined) {
-		return base
-	}
-
-	return mergeSkippingUndefined(base, sourceResolveItem(args))
+	return sourceResolveItem === undefined
+		? base
+		: mergeSkippingUndefined(base, sourceResolveItem(args))
 }
 
 /**

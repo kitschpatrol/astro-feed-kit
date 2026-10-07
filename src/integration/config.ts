@@ -263,11 +263,7 @@ function resolveFormatEntry(
 		return undefined
 	}
 
-	if (value === undefined || value === true) {
-		return defaultName
-	}
-
-	return value
+	return value === undefined || value === true ? defaultName : value
 }
 
 const DEFAULT_LIMIT = 25

@@ -257,11 +257,7 @@ function isAllowedIframe(node: Element): boolean {
 		return false
 	}
 
-	if (url.protocol !== 'https:') {
-		return false
-	}
-
-	return ALLOWED_IFRAME_HOSTS.has(url.hostname)
+	return url.protocol === 'https:' && ALLOWED_IFRAME_HOSTS.has(url.hostname)
 }
 
 const processor = unified()
@@ -397,15 +393,17 @@ function truncateAtBoundary(
 
 	// Phase C — append a "read more" link if configured.
 	const { readMore } = boundary
-	if (readMore !== undefined && readMore !== false && readMore !== '') {
-		const text = typeof readMore === 'string' ? readMore : DEFAULT_READ_MORE_TEXT
-		const p = document.createElement('p')
-		const a = document.createElement('a')
-		a.setAttribute('href', permalink)
-		a.textContent = text
-		p.append(a)
-		body.append(p)
+	if (['', false, undefined].includes(readMore)) {
+		return
 	}
+
+	const text = typeof readMore === 'string' ? readMore : DEFAULT_READ_MORE_TEXT
+	const p = document.createElement('p')
+	const a = document.createElement('a')
+	a.setAttribute('href', permalink)
+	a.textContent = text
+	p.append(a)
+	body.append(p)
 }
 
 /**

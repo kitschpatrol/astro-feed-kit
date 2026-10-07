@@ -14,24 +14,22 @@ publicHoistPattern:
   - '*prettier*'
   - '*remark*'
   - '*stylelint*'
+peerDependencyRules:
+  allowedVersions:
+    # No eslint 10 release yet, but runtime-compatible (used via eslint-plugin-astro)
+    'eslint-plugin-jsx-a11y>eslint': '10'
+minimumReleaseAgeExclude:
+  - '@kitschpatrol/cspell-config@8.12.1'
+  - '@kitschpatrol/eslint-config@8.12.1'
+  - '@kitschpatrol/knip-config@8.12.1'
+  - '@kitschpatrol/mdat-config@8.12.1'
+  - '@kitschpatrol/prettier-config@8.12.1'
+  - '@kitschpatrol/remark-config@8.12.1'
+  - '@kitschpatrol/repo-config@8.12.1'
+  - '@kitschpatrol/shared-config@8.12.1'
+  - '@kitschpatrol/stylelint-config@8.12.1'
+  - '@kitschpatrol/typescript-config@8.12.1'
+  - poptab@1.2.2
 allowBuilds:
   esbuild: true
-  puppeteer: true
-  sharp: true
   unrs-resolver: true
-  ws: true
-minimumReleaseAgeExclude:
-  - '@astrojs/*'
-  - '@cspell/*'
-  - '@kitschpatrol/*'
-  - astro
-  - astro-mdx-kit
-  - cspell
-  - cspell-config-lib
-  - cspell-dictionary
-  - cspell-gitignore
-  - cspell-glob
-  - cspell-grammar
-  - cspell-io
-  - cspell-lib
-  - cspell-trie-lib

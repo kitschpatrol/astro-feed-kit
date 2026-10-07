@@ -83,7 +83,9 @@ const currentPath = trimmedPath === '' ? '/' : trimmedPath
 	</head>
 	<body>
 		<nav>
-			<a aria-current={currentPath === '/' ? 'page' : undefined} href="/">Index</a>
+			<a aria-current={currentPath === '/' ? 'page' : undefined} href="/">
+				Index
+			</a>
 			<a href="/rss.xml">RSS</a>
 			<a href="/atom.xml">Atom</a>
 			<a href="/feed.json">JSON</a>

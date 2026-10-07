@@ -1,7 +1,7 @@
 {
 	"extends": "@kitschpatrol/typescript-config/astro",
 	"compilerOptions": {
-		"types": ["node", "hast"]
+		"types": ["node"]
 	},
 	// Playground workspaces each declare their own `astro:content`
 	// `DataEntryMap`. Because it's a type alias (not an interface), multiple

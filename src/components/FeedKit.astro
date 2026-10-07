@@ -18,18 +18,12 @@ const atomPath = getFeedPath(config, 'atom')
 const jsonPath = getFeedPath(config, 'json')
 ---
 
-{
-	rssPath !== undefined && (
-		<link href={rssPath} rel="alternate" title={feedTitle} type="application/rss+xml" />
-	)
-}
-{
-	atomPath !== undefined && (
-		<link href={atomPath} rel="alternate" title={feedTitle} type="application/atom+xml" />
-	)
-}
-{
-	jsonPath !== undefined && (
-		<link href={jsonPath} rel="alternate" title={feedTitle} type="application/feed+json" />
-	)
-}
+{rssPath !== undefined && (
+	<link href={rssPath} rel="alternate" title={feedTitle} type="application/rss+xml" />
+)}
+{atomPath !== undefined && (
+	<link href={atomPath} rel="alternate" title={feedTitle} type="application/atom+xml" />
+)}
+{jsonPath !== undefined && (
+	<link href={jsonPath} rel="alternate" title={feedTitle} type="application/feed+json" />
+)}

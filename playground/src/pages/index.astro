@@ -28,20 +28,24 @@ const merged: Entry[] = [
 
 	<h2>Feeds</h2>
 	<ul>
-		<li><a href="/rss.xml">/rss.xml</a></li>
-		<li><a href="/atom.xml">/atom.xml</a></li>
-		<li><a href="/feed.json">/feed.json</a></li>
+		<li>
+			<a href="/rss.xml">/rss.xml</a>
+		</li>
+		<li>
+			<a href="/atom.xml">/atom.xml</a>
+		</li>
+		<li>
+			<a href="/feed.json">/feed.json</a>
+		</li>
 	</ul>
 
 	<h2>Entries</h2>
 	<ul>
-		{
-			merged.map((entry): astroHTML.JSX.Element => (
-				<li>
-					<code>{entry.collection}</code> · <strong>{entry.title}</strong> ·{' '}
-					<time datetime={entry.date.toISOString()}>{entry.date.toISOString().slice(0, 10)}</time>
-				</li>
-			))
-		}
+		{merged.map((entry): astroHTML.JSX.Element => (
+			<li>
+				<code>{entry.collection}</code> · <strong>{entry.title}</strong> ·{' '}
+				<time datetime={entry.date.toISOString()}>{entry.date.toISOString().slice(0, 10)}</time>
+			</li>
+		))}
 	</ul>
 </Layout>

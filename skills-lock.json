@@ -1,10 +1,30 @@
 {
-	"version": 1,
-	"skills": {
-		"playwright-cli": {
-			"source": "microsoft/playwright-cli",
-			"sourceType": "github",
-			"computedHash": "7075ab30f588019197a2f1518bb4c9d33d69d33352af079b5f9c60303ad3886e"
-		}
-	}
+  "version": 1,
+  "skills": {
+    "ksc": {
+      "source": "@kitschpatrol/shared-config",
+      "sourceType": "node_modules",
+      "computedHash": "9507e9baf95201c83962249d7132181eac55a828945de0dc196ee5ce321e463b"
+    },
+    "ksc-update": {
+      "source": "@kitschpatrol/shared-config",
+      "sourceType": "node_modules",
+      "computedHash": "a6c532b7c270c1a4ace6d9f407944246dabd25ef9ae7821bf70bc47182a690ab"
+    },
+    "mdat": {
+      "source": "mdat",
+      "sourceType": "node_modules",
+      "computedHash": "eb4b76f9811144d25e390644b28e29d73ca50d5afddbab921a487ab545ad1a75"
+    },
+    "mdat-plugin-authoring": {
+      "source": "mdat",
+      "sourceType": "node_modules",
+      "computedHash": "d5c4fd802f09eda05adde1765920c75e1e111e44222a633f3af7d02a8638694a"
+    },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "computedHash": "7075ab30f588019197a2f1518bb4c9d33d69d33352af079b5f9c60303ad3886e"
+    }
+  }
 }

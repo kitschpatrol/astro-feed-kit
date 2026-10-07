@@ -24,7 +24,7 @@
 		"email": "eric@ericmika.com",
 		"url": "https://ericmika.com"
 	},
-	"sideEffects": true,
+	"sideEffects": false,
 	"type": "module",
 	"exports": {
 		".": {
@@ -38,14 +38,15 @@
 		"src/components"
 	],
 	"scripts": {
-		"bench": "vitest bench --run --compare test/benchmarks/baseline.json",
-		"bench:baseline": "vitest bench --run --outputJson test/benchmarks/baseline.json",
+		"bench": "vitest bench --run",
+		"bench:baseline": "vitest bench --run --mode baseline",
 		"build": "tsdown && pnpm run -r astro sync",
-		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
 		"dev": "pnpm -C playground run dev",
 		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint",
+		"prepare": "skills experimental_sync -y -f",
 		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && pnpm publish --otp $(op item get npm --otp)",
 		"test": "vitest run"
@@ -63,27 +64,28 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@kitschpatrol/shared-config": "^8.7.0",
+		"@kitschpatrol/shared-config": "^8.12.1",
 		"@types/hast": "3.0.5",
-		"@types/node": "~24.13.3",
-		"astro": "^7.2.7",
-		"bumpp": "^12.2.1",
-		"defuddle": "^0.19.3",
+		"@types/node": "~24.13.6",
+		"astro": "^7.3.6",
+		"bumpp": "^12.3.0",
+		"defuddle": "^0.19.4",
 		"hast-util-sanitize": "5.0.2",
 		"linkedom": "^0.18.13",
 		"node-addon-api": "^8.9.2",
-		"node-gyp": "^13.0.1",
+		"node-gyp": "^13.1.0",
 		"shx": "^0.4.0",
-		"tsdown": "^0.22.14",
+		"skills": "^1.7.0",
+		"tsdown": "^0.23.0",
 		"typescript": "~6.0.3",
-		"vite": "^8.2.2",
-		"vitest": "^4.1.11"
+		"vite": "^8.3.3",
+		"vitest": "^5.0.3"
 	},
 	"peerDependencies": {
 		"astro": "^7.0.0"
 	},
-	"packageManager": "pnpm@11.18.0",
+	"packageManager": "pnpm@12.9.1",
 	"engines": {
-		"node": ">=24.16.0"
+		"node": "^24.16.0 || >=26.3.0"
 	}
 }

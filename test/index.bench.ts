@@ -20,7 +20,7 @@
 // `astro:content` is mocked so the feed pipeline can run in vitest without Astro.
 
 import type { CollectionEntry, CollectionKey } from 'astro:content'
-import { bench, describe, vi } from 'vitest'
+import { describe, test, vi } from 'vitest'
 import type { ItemResolverArgs, SourceInput } from '../src/integration/config'
 import type { Item } from '../src/integration/schemas'
 import { defineFeedKitConfig } from '../src/integration/config'
@@ -31,6 +31,46 @@ import {
 	tagCategoryResolver,
 } from '../src/integration/item-map'
 import { markdownToHtml, sanitizeHtml } from '../src/integration/sanitize'
+
+// ---------------------------------------------------------------------------
+// Baseline comparison
+// ---------------------------------------------------------------------------
+
+// `pnpm run bench:baseline` runs Vitest with `--mode baseline`, which rewrites
+// each benchmark's stored result instead of comparing against it.
+const WRITE_BASELINE = import.meta.env.MODE === 'baseline'
+
+// Tinybench 2 sampling defaults (used through Vitest 4). Tinybench 6 samples at
+// least 64 iterations, which pushes the slowest benchmarks past the test timeout.
+const RUN_OPTIONS = { iterations: 10, time: 500, warmupIterations: 5, warmupTime: 100 }
+
+const NON_ALPHANUMERIC_RUN = /[^\da-z]+/gv
+const EDGE_HYPHENS = /^-|-$/gv
+
+function baselineFileName(fullName: string): string {
+	return fullName.toLowerCase().replaceAll(NON_ALPHANUMERIC_RUN, '-').replaceAll(EDGE_HYPHENS, '')
+}
+
+/**
+ * Registers a benchmark test that compares `fn` against its stored result in
+ * `test/benchmarks/`, or refreshes that result in baseline mode.
+ */
+function benchTest(name: string, fn: () => unknown): void {
+	// eslint-disable-next-line test/expect-expect -- Benchmarks report timings and have nothing to assert.
+	test(name, async ({ bench: benchmark, task }) => {
+		const baselinePath = `./test/benchmarks/${baselineFileName(`${task.suite?.name ?? ''} ${name}`)}.json`
+		if (WRITE_BASELINE) {
+			await benchmark(name, { writeResult: baselinePath }, fn).run(RUN_OPTIONS)
+			return
+		}
+
+		await benchmark.compare(
+			benchmark(name, fn),
+			benchmark.from(`${name} (baseline)`, baselinePath),
+			RUN_OPTIONS,
+		)
+	})
+}
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -113,23 +153,23 @@ function buildArticleMarkdown(paragraphs: number): string {
 // ---------------------------------------------------------------------------
 
 describe('sanitizeHtml', () => {
-	bench('small body, no excerpt boundary', async () => {
+	benchTest('small body, no excerpt boundary', async () => {
 		await sanitizeHtml(SMALL_HTML, PERMALINK, false)
 	})
 
-	bench('medium body, no excerpt boundary', async () => {
+	benchTest('medium body, no excerpt boundary', async () => {
 		await sanitizeHtml(MEDIUM_HTML, PERMALINK, false)
 	})
 
-	bench('large body, no excerpt boundary', async () => {
+	benchTest('large body, no excerpt boundary', async () => {
 		await sanitizeHtml(LARGE_HTML, PERMALINK, false)
 	})
 
-	bench('medium body, comment excerpt boundary', async () => {
+	benchTest('medium body, comment excerpt boundary', async () => {
 		await sanitizeHtml(MEDIUM_HTML_WITH_EXCERPT, PERMALINK, { comment: 'excerpt' })
 	})
 
-	bench('medium body, selector excerpt boundary', async () => {
+	benchTest('medium body, selector excerpt boundary', async () => {
 		await sanitizeHtml(MEDIUM_HTML, PERMALINK, { selector: '#section-0' })
 	})
 })
@@ -139,11 +179,11 @@ describe('sanitizeHtml', () => {
 // ---------------------------------------------------------------------------
 
 describe('markdownToHtml', () => {
-	bench('small markdown', async () => {
+	benchTest('small markdown', async () => {
 		await markdownToHtml(SMALL_MARKDOWN)
 	})
 
-	bench('medium markdown with GFM table + code', async () => {
+	benchTest('medium markdown with GFM table + code', async () => {
 		await markdownToHtml(MEDIUM_MARKDOWN)
 	})
 })
@@ -185,21 +225,21 @@ const resolverArgsWithTags = makeArgs({
 const tagOverlay = tagCategoryResolver({ basePath: '/tags/' })
 
 describe('resolveItemFields', () => {
-	bench('defaults only, no tags', () => {
+	benchTest('defaults only, no tags', () => {
 		defaultItemResolver(resolverArgsPlain)
 	})
 
-	bench('defaults only, with 7 tags (slugify path)', () => {
+	benchTest('defaults only, with 7 tags (slugify path)', () => {
 		defaultItemResolver(resolverArgsWithTags)
 	})
 
-	bench('with user resolver overlay (no-op override)', () => {
+	benchTest('with user resolver overlay (no-op override)', () => {
 		resolveItemFields(resolverArgsWithTags, ({ entry }) => ({
 			description: (entry.data as { description?: string }).description,
 		}))
 	})
 
-	bench('with tagCategoryResolver overlay (URL per tag)', () => {
+	benchTest('with tagCategoryResolver overlay (URL per tag)', () => {
 		resolveItemFields(resolverArgsWithTags, (args) => ({ ...tagOverlay(args) }))
 	})
 })
@@ -345,19 +385,19 @@ const largeConfigWithResolver = defineFeedKitConfig({
 })
 
 describe('generateFeed (includeContent: false)', () => {
-	bench('10 entries, 1 source', async () => {
+	benchTest('10 entries, 1 source', async () => {
 		await generateFeed(smallConfig)
 	})
 
-	bench('200 entries, 2 sources', async () => {
+	benchTest('200 entries, 2 sources', async () => {
 		await generateFeed(mediumConfig)
 	})
 
-	bench('1500 entries, 3 sources', async () => {
+	benchTest('1500 entries, 3 sources', async () => {
 		await generateFeed(largeConfig)
 	})
 
-	bench('1500 entries, 3 sources, with custom resolvers', async () => {
+	benchTest('1500 entries, 3 sources, with custom resolvers', async () => {
 		await generateFeed(largeConfigWithResolver)
 	})
 })
@@ -385,11 +425,11 @@ const mediumContentConfig = defineFeedKitConfig({
 })
 
 describe('generateFeed (includeContent: true)', () => {
-	bench('10 entries, 1 source', async () => {
+	benchTest('10 entries, 1 source', async () => {
 		await generateFeed(smallContentConfig)
 	})
 
-	bench('200 entries, 2 sources', async () => {
+	benchTest('200 entries, 2 sources', async () => {
 		await generateFeed(mediumContentConfig)
 	})
 })

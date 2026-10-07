@@ -30,15 +30,13 @@ function callGetContainerRenderer(module: unknown): unknown {
 }
 
 function isAstroRenderer(value: unknown): value is AstroRenderer {
-	if (typeof value !== 'object' || value === null) {
-		return false
-	}
-
-	if (!('name' in value) || typeof value.name !== 'string') {
-		return false
-	}
-
-	if (!('serverEntrypoint' in value)) {
+	if (
+		typeof value !== 'object' ||
+		value === null ||
+		!('name' in value) ||
+		typeof value.name !== 'string' ||
+		!('serverEntrypoint' in value)
+	) {
 		return false
 	}
 
@@ -47,11 +45,7 @@ function isAstroRenderer(value: unknown): value is AstroRenderer {
 }
 
 function isModuleNotFound(error: unknown): boolean {
-	if (typeof error !== 'object' || error === null) {
-		return false
-	}
-
-	if (!('code' in error)) {
+	if (typeof error !== 'object' || error === null || !('code' in error)) {
 		return false
 	}
 

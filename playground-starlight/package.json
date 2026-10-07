@@ -13,19 +13,19 @@
 	"scripts": {
 		"astro": "astro",
 		"build": "astro build",
-		"clean": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
 		"dev": "poptab && astro dev --open",
 		"preview": "poptab && astro preview --open"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@astrojs/mdx": "^7.0.8",
-		"@astrojs/starlight": "^0.41.9",
+		"@astrojs/mdx": "^8.0.3",
+		"@astrojs/starlight": "^0.42.5",
 		"@types/node": "~24.13.3",
-		"astro": "^7.2.7",
+		"astro": "^7.3.6",
 		"astro-feed-kit": "link:..",
-		"poptab": "^1.1.2",
-		"sharp": "^0.35.3",
+		"poptab": "^1.2.2",
+		"sharp": "^0.35.5",
 		"shx": "^0.4.0"
 	},
 	"engines": {

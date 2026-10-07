@@ -49,6 +49,13 @@ It covers:
 
 An [Astro](https://astro.build/) 7+ project with at least one [content collection](https://docs.astro.build/en/guides/content-collections/) whose entries carry a `title` and a `date`.
 
+<!-- dependencies({ heading: false }) -->
+
+- [Node.js](https://nodejs.org/) 24.16.0 or newer (specifically `^24.16.0 || >=26.3.0`)
+- [astro](https://www.npmjs.com/package/astro) `^7.0.0` _(peer dependency)_
+
+<!-- /dependencies -->
+
 ### Installation
 
 ```bash
@@ -323,7 +330,7 @@ Three things differ from a plain Astro setup:
 3. **Starlight owns the `<head>`.** Use its [`components.Head` override slot](https://starlight.astro.build/guides/overriding-components/) to inject `<FeedKit />`.
 
 ```ts
-// Src/content.config.ts
+// In src/content.config.ts
 import { docsLoader } from '@astrojs/starlight/loaders'
 import { docsSchema } from '@astrojs/starlight/schema'
 import { defineCollection } from 'astro:content'
@@ -342,7 +349,7 @@ export const collections = {
 ```
 
 ```ts
-// Astro.config.ts
+// In astro.config.ts
 import starlight from '@astrojs/starlight'
 import feedKit from 'astro-feed-kit'
 import { defineConfig } from 'astro/config'
@@ -380,7 +387,9 @@ import Default from '@astrojs/starlight/components/Head.astro'
 import FeedKit from 'astro-feed-kit/components/FeedKit.astro'
 ---
 
-<Default><slot /></Default>
+<Default>
+  <slot />
+</Default>
 <FeedKit />
 ```
 

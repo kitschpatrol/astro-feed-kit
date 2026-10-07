@@ -2,6 +2,10 @@ import type { Plugin } from 'vite'
 
 const VIRTUAL_MODULE_ID = 'virtual:astro-feed-kit/config'
 const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`
+const ESCAPED_VIRTUAL_MODULE_ID = VIRTUAL_MODULE_ID.replaceAll(
+	/[.*+?^$\{\}\(\)\|\[\]\\]/gv,
+	String.raw`\$&`,
+)
 
 /**
  * Symbol identifier for the integration's per-instance config slot on
@@ -26,21 +30,17 @@ export function configBridgePlugin(instanceId: string): Plugin {
 	const symbolKey = configSymbolKey(instanceId)
 	return {
 		load: {
-			filter: { id: new RegExp(String.raw`^\0${escapeRegex(VIRTUAL_MODULE_ID)}$`, 'v') },
+			filter: { id: new RegExp(String.raw`^\0${ESCAPED_VIRTUAL_MODULE_ID}$`, 'v') },
 			handler() {
 				return `export default globalThis[Symbol.for(${JSON.stringify(symbolKey)})]`
 			},
 		},
 		name: `astro-feed-kit:config:${instanceId}`,
 		resolveId: {
-			filter: { id: new RegExp(`^${escapeRegex(VIRTUAL_MODULE_ID)}$`, 'v') },
+			filter: { id: new RegExp(`^${ESCAPED_VIRTUAL_MODULE_ID}$`, 'v') },
 			handler() {
 				return RESOLVED_VIRTUAL_MODULE_ID
 			},
 		},
 	}
-}
-
-function escapeRegex(value: string): string {
-	return value.replaceAll(/[.*+?^$\{\}\(\)\|\[\]\\]/gv, String.raw`\$&`)
 }
