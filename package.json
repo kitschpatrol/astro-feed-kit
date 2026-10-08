@@ -46,7 +46,7 @@
 		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint",
-		"prepare": "skills experimental_sync -y -f",
+		"prepare": "astro sync && pnpm run build && skills experimental_sync -y -f",
 		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && pnpm publish --otp $(op item get npm --otp)",
 		"test": "vitest run"
@@ -64,7 +64,7 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@kitschpatrol/shared-config": "^8.12.1",
+		"@kitschpatrol/shared-config": "^8.13.1",
 		"@types/hast": "3.0.5",
 		"@types/node": "~24.13.6",
 		"astro": "^7.3.6",

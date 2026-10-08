@@ -9,7 +9,7 @@
     "ksc-update": {
       "source": "@kitschpatrol/shared-config",
       "sourceType": "node_modules",
-      "computedHash": "a6c532b7c270c1a4ace6d9f407944246dabd25ef9ae7821bf70bc47182a690ab"
+      "computedHash": "9cb5f2bcf84f38165f3976ac6669123c891e369bd7f1093188ea16e7f2e4d74d"
     },
     "mdat": {
       "source": "mdat",
