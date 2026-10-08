@@ -20,8 +20,8 @@
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
 		"@astrojs/mdx": "^8.0.3",
-		"@types/node": "~24.13.3",
-		"astro": "^7.3.6",
+		"@types/node": "~24.13.6",
+		"astro": "^7.3.8",
 		"astro-feed-kit": "link:..",
 		"poptab": "^1.2.2",
 		"sharp": "^0.35.5",
