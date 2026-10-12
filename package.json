@@ -67,24 +67,24 @@
 		"@kitschpatrol/shared-config": "^8.13.1",
 		"@types/hast": "3.0.5",
 		"@types/node": "~24.13.6",
-		"astro": "^7.3.6",
+		"astro": "^7.3.8",
 		"bumpp": "^12.3.0",
-		"defuddle": "^0.19.4",
+		"defuddle": "^0.19.5",
 		"hast-util-sanitize": "5.0.2",
 		"linkedom": "^0.18.13",
 		"node-addon-api": "^8.9.2",
 		"node-gyp": "^13.1.0",
 		"shx": "^0.4.0",
-		"skills": "^1.7.0",
-		"tsdown": "^0.23.0",
+		"skills": "^1.7.2",
+		"tsdown": "^0.23.1",
 		"typescript": "~6.0.3",
-		"vite": "^8.3.3",
+		"vite": "^8.3.4",
 		"vitest": "^5.0.3"
 	},
 	"peerDependencies": {
 		"astro": "^7.0.0"
 	},
-	"packageManager": "pnpm@12.9.1",
+	"packageManager": "pnpm@12.11.2",
 	"engines": {
 		"node": "^24.16.0 || >=26.3.0"
 	}

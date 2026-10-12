@@ -4,22 +4,16 @@
     "ksc": {
       "source": "@kitschpatrol/shared-config",
       "sourceType": "node_modules",
+      "skillPath": "skills/ksc/SKILL.md",
+      "version": "8.13.1",
       "computedHash": "9507e9baf95201c83962249d7132181eac55a828945de0dc196ee5ce321e463b"
     },
     "ksc-update": {
       "source": "@kitschpatrol/shared-config",
       "sourceType": "node_modules",
+      "skillPath": "skills/ksc-update/SKILL.md",
+      "version": "8.13.1",
       "computedHash": "9cb5f2bcf84f38165f3976ac6669123c891e369bd7f1093188ea16e7f2e4d74d"
-    },
-    "mdat": {
-      "source": "mdat",
-      "sourceType": "node_modules",
-      "computedHash": "eb4b76f9811144d25e390644b28e29d73ca50d5afddbab921a487ab545ad1a75"
-    },
-    "mdat-plugin-authoring": {
-      "source": "mdat",
-      "sourceType": "node_modules",
-      "computedHash": "d5c4fd802f09eda05adde1765920c75e1e111e44222a633f3af7d02a8638694a"
     },
     "playwright-cli": {
       "source": "microsoft/playwright-cli",

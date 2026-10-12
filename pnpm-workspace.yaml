@@ -1,19 +1,6 @@
 allowBuilds:
-  esbuild: true
   unrs-resolver: true
 ignoreWorkspaceRootCheck: true
-minimumReleaseAgeExclude:
-  - '@kitschpatrol/cspell-config@8.13.1'
-  - '@kitschpatrol/eslint-config@8.13.1'
-  - '@kitschpatrol/knip-config@8.13.1'
-  - '@kitschpatrol/mdat-config@8.13.1'
-  - '@kitschpatrol/prettier-config@8.13.1'
-  - '@kitschpatrol/remark-config@8.13.1'
-  - '@kitschpatrol/repo-config@8.13.1'
-  - '@kitschpatrol/shared-config@8.13.1'
-  - '@kitschpatrol/stylelint-config@8.13.1'
-  - '@kitschpatrol/typescript-config@8.13.1'
-  - poptab@1.2.2
 packages:
   - .
   - playground
