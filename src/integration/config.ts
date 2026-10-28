@@ -296,15 +296,10 @@ export function defaultItemSort(a: Item, b: Item): number {
  * from the matching collection, so the widening is sound at runtime.
  */
 function normalizeSource(input: SourceInput): Source {
-	if (typeof input === 'string') {
-		// `CollectionKey` is a compile-time union of declared collection names;
-		// at runtime it's just `string`. Mirrors the cast at the `getCollection`
-		// call site in `collection.ts`.
-
-		return { collection: input as CollectionKey }
-	}
-
-	return input
+	// `CollectionKey` is a compile-time union of declared collection names;
+	// at runtime it's just `string`. Mirrors the cast at the `getCollection`
+	// call site in `collection.ts`.
+	return typeof input === 'string' ? { collection: input as CollectionKey } : input
 }
 
 function joinUrl(base: string, path: string): string {

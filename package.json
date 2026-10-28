@@ -41,12 +41,12 @@
 		"bench": "vitest bench --run",
 		"bench:baseline": "vitest bench --run --mode baseline",
 		"build": "tsdown && pnpm run -r astro sync",
-		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX",
 		"dev": "pnpm -C playground run dev",
 		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint",
-		"prepare": "astro sync && pnpm run build && skills experimental_sync -y -f",
+		"prepare": "astro sync && pnpm run build",
 		"prepublishOnly": "tsdown",
 		"release": "bumpp --commit 'Release: %s' && pnpm build && pnpm publish --otp $(op item get npm --otp)",
 		"test": "vitest run"
@@ -64,7 +64,7 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
-		"@kitschpatrol/shared-config": "^8.13.1",
+		"@kitschpatrol/shared-config": "^8.14.0",
 		"@types/hast": "3.0.5",
 		"@types/node": "~24.13.6",
 		"astro": "^7.3.8",
@@ -75,7 +75,6 @@
 		"node-addon-api": "^8.9.2",
 		"node-gyp": "^13.1.0",
 		"shx": "^0.4.0",
-		"skills": "^1.7.2",
 		"tsdown": "^0.23.1",
 		"typescript": "~6.0.3",
 		"vite": "^8.3.4",
@@ -84,7 +83,7 @@
 	"peerDependencies": {
 		"astro": "^7.0.0"
 	},
-	"packageManager": "pnpm@12.11.2",
+	"packageManager": "pnpm@12.15.0",
 	"engines": {
 		"node": "^24.16.0 || >=26.3.0"
 	}

@@ -13,7 +13,7 @@
 	"scripts": {
 		"astro": "astro",
 		"build": "astro build",
-		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX -e !.claude/",
+		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX",
 		"dev": "poptab && astro dev --open",
 		"preview": "poptab && astro preview --open"
 	},

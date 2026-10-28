@@ -11,22 +11,16 @@ import { pathToFileURL } from 'node:url'
  * only need a safe way to invoke an untyped function past the lint rules.
  */
 function callGetContainerRenderer(module: unknown): unknown {
-	if (typeof module !== 'object' || module === null) {
-		return undefined
-	}
-
-	if (!('getContainerRenderer' in module)) {
+	if (typeof module !== 'object' || module === null || !('getContainerRenderer' in module)) {
 		return undefined
 	}
 
 	const { getContainerRenderer } = module
-	if (typeof getContainerRenderer !== 'function') {
-		return undefined
-	}
-
 	// `Reflect.apply` keeps the call typed as `unknown` without an assertion
 	// on a `Function`-typed value (which eslint flags as unsafe).
-	return Reflect.apply(getContainerRenderer, module, [])
+	return typeof getContainerRenderer === 'function'
+		? Reflect.apply(getContainerRenderer, module, [])
+		: undefined
 }
 
 function isAstroRenderer(value: unknown): value is AstroRenderer {

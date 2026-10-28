@@ -15,14 +15,11 @@ function ensureTrailingSlash(value: string): string {
 }
 
 function readField(data: unknown, key: string): unknown {
-	if (typeof data !== 'object' || data === null) {
-		return undefined
-	}
-
 	// Narrowed to a non-null object; default resolvers read common fields by
 	// name across arbitrary collection schemas.
-
-	return (data as Record<string, unknown>)[key]
+	return typeof data === 'object' && data !== null
+		? (data as Record<string, unknown>)[key]
+		: undefined
 }
 
 function asString(value: unknown): string | undefined {

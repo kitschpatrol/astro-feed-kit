@@ -330,12 +330,10 @@ function findBoundaryNode(
 	boundary: ExcerptBoundary,
 ): SanitizeNode | undefined {
 	const { body } = document
-	if ('comment' in boundary) {
-		return findCommentDescendant(body, boundary.comment)
-	}
-
 	// Scoped to <body> so head elements never match.
-	return body.querySelector(boundary.selector) ?? undefined
+	return 'comment' in boundary
+		? findCommentDescendant(body, boundary.comment)
+		: (body.querySelector(boundary.selector) ?? undefined)
 }
 
 /** Remove every sibling that follows `node` from their shared parent. */

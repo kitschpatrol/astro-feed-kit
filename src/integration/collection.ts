@@ -3,16 +3,13 @@ import type { ResolvedFeedKitConfig, Source } from './config'
 import { FeedEligibleEntrySchema } from './schemas'
 
 function readField(data: unknown, key: string): unknown {
-	if (typeof data !== 'object' || data === null) {
-		return undefined
-	}
-
 	// Narrowed to a non-null object; indexed read via a widening assertion
 	// is intentional — entry.data is a declared-schema union, but for
 	// site-agnostic filter defaults we need to probe common fields by
 	// name without per-collection branches.
-
-	return (data as Record<string, unknown>)[key]
+	return typeof data === 'object' && data !== null
+		? (data as Record<string, unknown>)[key]
+		: undefined
 }
 
 function defaultEligibilityFilter(entry: CollectionEntry<CollectionKey>): boolean {
