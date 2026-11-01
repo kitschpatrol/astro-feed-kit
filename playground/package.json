@@ -18,10 +18,10 @@
 		"preview": "poptab && astro preview --open"
 	},
 	"devDependencies": {
-		"@astrojs/check": "^0.9.10",
-		"@astrojs/mdx": "^8.0.3",
+		"@astrojs/check": "^0.9.12",
+		"@astrojs/mdx": "^8.1.2",
 		"@types/node": "~24.13.6",
-		"astro": "^7.3.8",
+		"astro": "^7.4.4",
 		"astro-feed-kit": "link:..",
 		"poptab": "^1.2.2",
 		"sharp": "^0.35.5",
