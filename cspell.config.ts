@@ -1,6 +1,6 @@
 import { cspellConfig } from '@kitschpatrol/cspell-config'
 
 export default cspellConfig({
-	ignorePaths: ['research/**'],
-	words: ['inlines', 'Monette', 'msgbox', 'Praß', 'rels', 'ZZZBELOWZZZ'],
+	ignorePaths: ['research/**', '**/changelog.md'],
+	words: ['chagent', 'inlines', 'Monette', 'msgbox', 'Praß', 'rels', 'ZZZBELOWZZZ'],
 })

@@ -8,6 +8,7 @@ export default eslintConfig({
 		// unsafe schemes) that exist to exercise the sanitizer. They aren't
 		// part of the tsconfig program and would only produce noise.
 		'test/fixtures/mdx/**/*.mdx',
+		'**/changelog.md',
 	],
 	type: 'lib',
 })
