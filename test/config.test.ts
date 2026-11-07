@@ -104,7 +104,6 @@ describe('defineFeedKitConfig', () => {
 			formats: { rss: 'feed.xml' },
 		})
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/feed.xml')
-		expect(resolved.feedOptions.feed).toBe('https://example.com/feed.xml')
 	})
 
 	it('handles trailing slash on siteLink without producing double slashes', () => {
@@ -115,10 +114,9 @@ describe('defineFeedKitConfig', () => {
 		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/rss.xml')
 	})
 
-	it('defaults id from siteLink and derives feed from siteLink + formats.rss', () => {
+	it('defaults id from siteLink', () => {
 		const resolved = defineFeedKitConfig(baseInput)
 		expect(resolved.feedOptions.id).toBe('https://example.com/')
-		expect(resolved.feedOptions.feed).toBe('https://example.com/rss.xml')
 	})
 
 	it('omits feedLinks, feed, and id when siteLink is absent', () => {
@@ -153,13 +151,12 @@ describe('defineFeedKitConfig', () => {
 		expect(resolved.formats.rss).toBe('rss.xml')
 	})
 
-	it('omits feedOptions.feed when rss is disabled', () => {
+	it('omits the rss feed link when rss is disabled', () => {
 		const resolved = defineFeedKitConfig({
 			...baseInput,
 			formats: { rss: false },
 		})
 		expect(resolved.formats.rss).toBeUndefined()
-		expect(resolved.feedOptions.feed).toBeUndefined()
 		expect(resolved.feedOptions.feedLinks?.rss).toBeUndefined()
 	})
 
@@ -185,7 +182,6 @@ describe('defineFeedKitConfig: Astro site options', () => {
 		})
 		expect(resolved.feedOptions.link).toBe('https://example.com/blog/')
 		expect(resolved.feedOptions.id).toBe('https://example.com/blog/')
-		expect(resolved.feedOptions.feed).toBe('https://example.com/blog/rss.xml')
 		expect(resolved.feedOptions.feedLinks).toEqual({
 			atom: 'https://example.com/blog/atom.xml',
 			json: 'https://example.com/blog/feed.json',

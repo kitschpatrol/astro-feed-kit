@@ -180,6 +180,28 @@ describe('pipeline: top-level sort and limit on merged items', () => {
 	})
 })
 
+describe('pipeline: serialized feeds', () => {
+	it('writes each format with its own URL as the self link', async () => {
+		setCollection('posts', [
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+		])
+
+		const config = defineFeedKitConfig({
+			feedOptions: baseFeedOptions,
+			formats: { rss: 'feed.xml' },
+			includeContent: false,
+			sources: [source('posts')],
+		})
+
+		const feed = await generateFeed(config)
+		expect(feed.atom1()).toContain('<link rel="self" href="https://example.com/atom.xml"/>')
+		expect(feed.rss2()).toContain(
+			'<atom:link href="https://example.com/feed.xml" rel="self" type="application/rss+xml"/>',
+		)
+		expect(feed.json1()).toContain('"feed_url": "https://example.com/feed.json"')
+	})
+})
+
 describe('pipeline: per-source resolveItem', () => {
 	it('per-source resolveItem output replaces fields the default filled in', async () => {
 		setCollection('posts', [

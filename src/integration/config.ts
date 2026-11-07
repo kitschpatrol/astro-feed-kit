@@ -178,8 +178,9 @@ export type FeedKitConfig = {
 	 *   document. Always derived from `formats` + `link` at resolution time;
 	 *   setting it manually used to silently conflict with the route mount
 	 *   paths.
-	 * - `feed` — the RSS "where does this feed live" self-reference. 100% redundant
-	 *   with `feedLinks.rss`; also derived.
+	 * - `feed` — the `feed` library writes it as the self link of every format,
+	 *   ahead of `feedLinks`, so a single value would mislabel the other formats.
+	 *   Each format's self link comes from `feedLinks` instead.
 	 *
 	 * If you need to advertise feeds at a different origin (e.g. a CDN), open an
 	 * issue — we'll add a first-class option rather than reopen this foot-gun.
@@ -241,9 +242,9 @@ export type FeedKitConfig = {
 
 /**
  * Fully resolved feed configuration produced by `defineFeedKitConfig`. Defaults
- * are merged in, and static resolution has populated derivable `feedOptions`
- * fields (`id`, `feed`, `feedLinks`, `generator`) where the user did not supply
- * them.
+ * are merged in, and static resolution has populated the derivable
+ * `feedOptions` fields (`link`, `id`, `feedLinks`) where the user did not
+ * supply them.
  */
 export type ResolvedFeedKitConfig = {
 	/**
@@ -396,12 +397,11 @@ function resolveAppendTrailingSlash(
  * supply them to match their project.
  *
  * `link` defaults to Astro's `site` joined with `base`, and is normalized to
- * end with `/`. When a link is available, the following fields are derived
- * unconditionally — user input for them is forbidden at the type level (see
- * `FeedKitConfig`):
- *
- * - `feedLinks.{rss,atom,json}` — `{link}{formats[kind]}`
- * - `feed` — `{link}{formats.rss}`
+ * end with `/`. When a link is available, `feedLinks.{rss,atom,json}` is
+ * derived unconditionally as `{link}{formats[kind]}` for each enabled format.
+ * User input for `feedLinks` and `feed` is forbidden at the type level (see
+ * `FeedKitConfig`), and `feed` is left unset so each format's self link comes
+ * from its own `feedLinks` entry.
  *
  * `id` defaults to `link` only when the user did not supply it.
  *
@@ -430,8 +430,8 @@ export function defineFeedKitConfig(
 	// `feed` or `feedLinks`), then layer in derived fields only when we
 	// have the `siteLink` they depend on. This avoids writing `undefined`
 	// into strict-optional library properties under
-	// `exactOptionalPropertyTypes`. `feedLinks` and the rss self-reference
-	// `feed` only include enabled formats.
+	// `exactOptionalPropertyTypes`. `feedLinks` only includes enabled
+	// formats.
 	const feedOptions: FeedOptions = { ...inputFeedOptions }
 	if (siteLink !== undefined) {
 		feedOptions.link = siteLink
@@ -444,10 +444,6 @@ export function defineFeedKitConfig(
 		}
 
 		feedOptions.feedLinks = feedLinks
-		if (formats.rss !== undefined) {
-			feedOptions.feed = joinUrl(siteLink, formats.rss)
-		}
-
 		feedOptions.id ??= siteLink
 	}
 
