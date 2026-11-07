@@ -7,9 +7,7 @@ tags:
 ---
 
 This post is in `src/content/posts/en/`, so it appears in `/rss.xml` and links to
-`/posts/hello-feed-kit/`. It also has an image with a relative path:
-
-![A tiger](/tiger.svg)
+`/posts/hello-feed-kit/`.
 
 <!-- excerpt -->
 
