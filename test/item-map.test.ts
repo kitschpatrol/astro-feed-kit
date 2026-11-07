@@ -42,6 +42,19 @@ describe('defaultItemResolver', () => {
 		expect(partial.link).toBe('https://example.com/posts/sample/')
 	})
 
+	it('omits the trailing slash from the default link when appendTrailingSlash is false', () => {
+		const partial = defaultItemResolver(makeArgs({ date: new Date(), title: 'T' }), false)
+		expect(partial.link).toBe('https://example.com/posts/sample')
+	})
+
+	it('keeps a base path from siteUrl in the default link', () => {
+		const partial = defaultItemResolver({
+			entry: makeEntry({ date: new Date(), title: 'T' }),
+			siteUrl: 'https://example.com/blog/',
+		})
+		expect(partial.link).toBe('https://example.com/blog/posts/sample/')
+	})
+
 	it('never sets content — the pipeline fills it from the sanitized render', () => {
 		const partial = defaultItemResolver(makeArgs({ date: new Date(), title: 'T' }))
 		expect('content' in partial).toBe(false)
@@ -147,6 +160,17 @@ describe('tagCategoryResolver', () => {
 			],
 		})
 	})
+
+	it.each(['/tags/', 'tags/', 'tags'])(
+		'resolves basePath %j under the base path in siteUrl',
+		(basePath) => {
+			const result = tagCategoryResolver({ basePath })({
+				entry: makeEntry({ date: new Date(), tags: ['Foo'], title: 'T' }),
+				siteUrl: 'https://example.com/blog/',
+			})
+			expect(result.category?.[0]?.domain).toBe('https://example.com/blog/tags/foo')
+		},
+	)
 
 	it('returns an empty object when tags are absent or empty', () => {
 		const build = tagCategoryResolver({ basePath: '/tags/' })

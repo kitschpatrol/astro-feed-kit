@@ -6,6 +6,7 @@ import { defineFeedKitConfig } from './integration/config'
 import { configBridgePlugin, configSymbolKey } from './internal/vite-plugin'
 
 export type {
+	AstroSiteOptions,
 	ExcerptBoundary,
 	FeedKitConfig,
 	FormatFilenames,
@@ -69,12 +70,21 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 				})
 			},
 			'astro:config:setup'({ config: astroConfig, injectRoute, logger, updateConfig }) {
-				// Fall back to Astro's site URL when the user didn't supply
-				// `feedOptions.link`. We surface this early (rather than at
-				// endpoint time) so misconfiguration is caught at build start.
-				const inputWithLink = ensureFeedLink(input, astroConfig.site)
+				const resolved = defineFeedKitConfig(input, {
+					base: astroConfig.base,
+					buildFormat: astroConfig.build.format,
+					site: astroConfig.site,
+					trailingSlash: astroConfig.trailingSlash,
+				})
 
-				const resolved = defineFeedKitConfig(inputWithLink)
+				// Surface a missing site URL here rather than at endpoint time,
+				// so misconfiguration is caught at build start.
+				if (resolved.feedOptions.link === undefined) {
+					throw new Error(
+						'astro-feed-kit: feedOptions.link was not provided and astro config has no `site` URL set. ' +
+							'Set one or the other so per-item permalinks can be built.',
+					)
+				}
 
 				// Capture Astro's canonical project root so endpoint-time
 				// renderer probing resolves bare specifiers against the
@@ -100,12 +110,14 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 					}
 
 					const entrypoint = fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url))
+					// Astro serves injected routes under `base` on its own, so the
+					// pattern stays base-relative.
 					injectRoute({
 						entrypoint,
 						pattern: `/${filename}`,
 						prerender: true,
 					})
-					mountedPaths.push(`/${filename}`)
+					mountedPaths.push(`${resolved.base}${filename}`)
 				}
 
 				if (mountedPaths.length === 0) {
@@ -118,26 +130,5 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 			},
 		},
 		name: 'astro-feed-kit',
-	}
-}
-
-function ensureFeedLink(input: FeedKitConfig, astroSite: string | undefined): FeedKitConfig {
-	if (input.feedOptions.link !== undefined) {
-		return input
-	}
-
-	if (astroSite === undefined) {
-		throw new Error(
-			'astro-feed-kit: feedOptions.link was not provided and astro config has no `site` URL set. ' +
-				'Set one or the other so per-item permalinks can be built.',
-		)
-	}
-
-	return {
-		...input,
-		feedOptions: {
-			...input.feedOptions,
-			link: astroSite,
-		},
 	}
 }

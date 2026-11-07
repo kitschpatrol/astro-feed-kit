@@ -15,6 +15,8 @@ function slugify(text: string): string {
 		.replaceAll(/^-|-$/gv, '')
 }
 
+const LEADING_SLASHES = /^\/+/v
+
 function ensureTrailingSlash(value: string): string {
 	return value.endsWith('/') ? value : `${value}/`
 }
@@ -58,9 +60,9 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
 /**
  * Built-in item defaults. Produces a `Partial<Item>` from the common Astro
  * frontmatter conventions (`title`, `date`, `description`, `tags`) plus a
- * default `link` derived from `siteUrl`, `entry.collection`, and `entry.id`.
- * This is the baseline that a user's `Source.resolveItem` overlay merges on top
- * of.
+ * default `link` derived from `siteUrl`, `entry.collection`, and `entry.id`,
+ * ending with `/` when `appendTrailingSlash` is set. This is the baseline that
+ * a user's `Source.resolveItem` overlay merges on top of.
  *
  * The category default intentionally emits `{name, term}` only — no `domain`.
  * Sites that want per-tag URLs in the feed should spread
@@ -70,15 +72,19 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
  * `content` is deliberately not set here — the pipeline fills it from the
  * sanitized rendered HTML after all resolvers have run.
  */
-export function defaultItemResolver({ entry, siteUrl }: ItemResolverArgs): Partial<Item> {
+export function defaultItemResolver(
+	{ entry, siteUrl }: ItemResolverArgs,
+	appendTrailingSlash = true,
+): Partial<Item> {
 	const { data } = entry
 	const title = asString(readField(data, 'title'))
 	const date = asDate(readField(data, 'date'))
 	const description = asString(readField(data, 'description'))
 	const category = categoryFromTags(readField(data, 'tags'))
 
+	const path = `${entry.collection}/${entry.id}${appendTrailingSlash ? '/' : ''}`
 	const result: Partial<Item> = {
-		link: new URL(`${entry.collection}/${entry.id}/`, ensureTrailingSlash(siteUrl)).href,
+		link: new URL(path, ensureTrailingSlash(siteUrl)).href,
 	}
 	if (title !== undefined) {
 		result.title = title
@@ -136,8 +142,9 @@ function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Pa
 export function resolveItemFields(
 	args: ItemResolverArgs,
 	sourceResolveItem?: ItemResolver,
+	appendTrailingSlash = true,
 ): Partial<Item> {
-	const base = defaultItemResolver(args)
+	const base = defaultItemResolver(args, appendTrailingSlash)
 	return sourceResolveItem === undefined
 		? base
 		: mergeSkippingUndefined(base, sourceResolveItem(args))
@@ -145,8 +152,9 @@ export function resolveItemFields(
 
 /**
  * Build a helper that produces a `{category}` partial with per-tag URLs derived
- * from `basePath` and `siteUrl`. Spread the result inside a source's
- * `resolveItem`:
+ * from `basePath` and `siteUrl`. `basePath` is resolved relative to the site
+ * root, so Astro's `base` is included whether or not `basePath` starts with
+ * `/`. Spread the result inside a source's `resolveItem`:
  *
  * @example
  * 	resolveItem: (args) => ({
@@ -167,7 +175,8 @@ export function tagCategoryResolver(options: {
 			return {}
 		}
 
-		const base = new URL(options.basePath, ensureTrailingSlash(siteUrl)).href
+		const basePath = options.basePath.replace(LEADING_SLASHES, '')
+		const base = new URL(basePath, ensureTrailingSlash(siteUrl)).href
 		return {
 			category: tags.map((name) => {
 				const term = slugify(name)

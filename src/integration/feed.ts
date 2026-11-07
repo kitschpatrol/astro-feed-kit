@@ -106,7 +106,11 @@ async function buildItem(
 	siteUrl: string,
 	render: AstroContentRender | undefined,
 ): Promise<Item> {
-	const partial = resolveItemFields({ entry, siteUrl }, source.resolveItem)
+	const partial = resolveItemFields(
+		{ entry, siteUrl },
+		source.resolveItem,
+		config.appendTrailingSlash,
+	)
 	// `defaultItemResolver` always sets `link`; the user's resolver may
 	// override it. Either way, `partial.link` is defined here.
 	const { link } = partial

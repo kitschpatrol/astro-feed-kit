@@ -97,9 +97,9 @@ The integration mounts three endpoints — served on request during `astro dev`,
 
 Filenames are configurable via the `formats` option.
 
-The integration uses Astro's top-level `site` URL to build per-item permalinks and feed self-links, unless you set `feedOptions.link` explicitly.
+The integration builds per-item permalinks and feed self-links from your site root URL: Astro's `site` joined with `base` (for example `https://example.com/blog/`). Set `feedOptions.link` to use a different root URL. If you do, include your `base` path in it.
 
-Astro's `base` and `trailingSlash` options are not taken into account: the `<FeedKit />` link tags, the feed self-links, and the default per-item link (`{site}/{collection}/{id}/`) are all built from `site` alone. If your site sets either option, override `link` per source with `resolveItem` (see [Resolvers](#resolvers)).
+The endpoints and the `<FeedKit />` link tags follow Astro's `base`, so with `base: '/blog'` the RSS feed is served at `/blog/rss.xml`. Default item links follow Astro's `trailingSlash` and `build.format` settings the same way Astro's own routing does. They end with `/` when `trailingSlash` is `'always'`, or when it is `'ignore'` (the default) and `build.format` is `'directory'` (also the default).
 
 ### Head component
 
@@ -128,17 +128,17 @@ This emits one `<link rel="alternate">` tag per enabled format, pointing at that
 
 The integration accepts a single `FeedKitConfig` object.
 
-| Option            | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                                                                           |
-| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sources`         | `SourceInput[]`                                                 | —                                                                                                                           | Required. One entry per content collection you want in the feed. A bare string is shorthand for `{ collection: string }`; use the object form to customize that source (see [Sources](#sources) below).                                               |
-| `feedOptions`     | `Omit<FeedOptions, 'feed' \| 'feedLinks'>` (from `feed`)        | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site`; `id` defaults to `link`. `feed` and `feedLinks` are derived from `link` and `formats` and can't be set. |
-| `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                                                                     |
-| `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                                                                   |
-| `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                                                               |
-| `excerptBoundary` | `ExcerptBoundary \| false`                                      | `false`                                                                                                                     | Where to truncate the rendered HTML. `false` disables truncation. Each boundary object accepts an optional `readMore` field (`true` or a custom string) to append a "Continue reading..." link.                                                       |
-| `formats`         | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename.                                              |
-| `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to probe when `renderers` is not supplied. Merged with a default list of known Astro renderers.                                                                                                                          |
-| `renderers`       | `AstroRenderer[]`                                               | `[]`                                                                                                                        | Explicit list of Astro renderers to load into the content container. Skips `knownRenderers` probing when non-empty. Recommended for standalone `generateFeed` callers and exotic install layouts.                                                     |
+| Option            | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sources`         | `SourceInput[]`                                                 | —                                                                                                                           | Required. One entry per content collection you want in the feed. A bare string is shorthand for `{ collection: string }`; use the object form to customize that source (see [Sources](#sources) below).                                                                  |
+| `feedOptions`     | `Omit<FeedOptions, 'feed' \| 'feedLinks'>` (from `feed`)        | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site` joined with `base`; `id` defaults to `link`. `feed` and `feedLinks` are derived from `link` and `formats` and can't be set. |
+| `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                                                                                        |
+| `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                                                                                      |
+| `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                                                                                  |
+| `excerptBoundary` | `ExcerptBoundary \| false`                                      | `false`                                                                                                                     | Where to truncate the rendered HTML. `false` disables truncation. Each boundary object accepts an optional `readMore` field (`true` or a custom string) to append a "Continue reading..." link.                                                                          |
+| `formats`         | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename.                                                                 |
+| `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to probe when `renderers` is not supplied. Merged with a default list of known Astro renderers.                                                                                                                                             |
+| `renderers`       | `AstroRenderer[]`                                               | `[]`                                                                                                                        | Explicit list of Astro renderers to load into the content container. Skips `knownRenderers` probing when non-empty. Recommended for standalone `generateFeed` callers and exotic install layouts.                                                                        |
 
 ### Sources
 
@@ -174,7 +174,7 @@ feedKit({
       limit: 20,
       // Flat slugs: /my-post/ instead of /posts/my-post/
       resolveItem: ({ entry, siteUrl }) => ({
-        link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href,
+        link: new URL(`${entry.id}/`, siteUrl).href,
       }),
     },
     'notes',
@@ -193,18 +193,20 @@ type ItemResolver = (args: {
 }) => Partial<Item>
 ```
 
+`siteUrl` is the site root URL described in [Integration setup](#integration-setup), including Astro's `base`. It always ends with `/`, so `new URL('some/path/', siteUrl)` resolves under it.
+
 Return only the fields you want to customize. Anything you omit (or return as `undefined`) falls through to the built-in defaults — it does **not** clobber them.
 
 The built-in defaults cover the common Astro frontmatter conventions plus the per-entry link:
 
-| Item field    | Default                                    |
-| ------------- | ------------------------------------------ |
-| `title`       | `entry.data.title`                         |
-| `date`        | `entry.data.date`                          |
-| `published`   | `entry.data.date`                          |
-| `description` | `entry.data.description`                   |
-| `category`    | `entry.data.tags` mapped to `{name, term}` |
-| `link`        | `{siteUrl}/{entry.collection}/{entry.id}/` |
+| Item field    | Default                                                                     |
+| ------------- | --------------------------------------------------------------------------- |
+| `title`       | `entry.data.title`                                                          |
+| `date`        | `entry.data.date`                                                           |
+| `published`   | `entry.data.date`                                                           |
+| `description` | `entry.data.description`                                                    |
+| `category`    | `entry.data.tags` mapped to `{name, term}`                                  |
+| `link`        | `{siteUrl}{entry.collection}/{entry.id}/`, with Astro's trailing slash rule |
 
 `content` is populated separately by the pipeline from the sanitized rendered HTML (or dropped entirely when `includeContent: false`). Return `content: 'your string'` from a resolver only when you want to override the automatic fill.
 
@@ -253,7 +255,7 @@ feedKit({
 })
 ```
 
-With `site: 'https://example.com'`, a post tagged `"Astro"` produces `<category domain="https://example.com/tags/astro">Astro</category>`.
+With `site: 'https://example.com'`, a post tagged `"Astro"` produces `<category domain="https://example.com/tags/astro">Astro</category>`. `basePath` is resolved under the site root URL, so with `base: '/blog'` the same tag's domain is `https://example.com/blog/tags/astro`.
 
 ### Excerpt boundaries
 
@@ -382,7 +384,7 @@ export default defineConfig({
           collection: 'docs',
           filter: (entry) => 'date' in entry.data && entry.data.date !== undefined,
           resolveItem: ({ entry, siteUrl }) => ({
-            link: new URL(`${entry.id}/`, siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href,
+            link: new URL(`${entry.id}/`, siteUrl).href,
           }),
         },
       ],
@@ -420,23 +422,23 @@ Resolver closures and filter functions are passed by reference through the `glob
 
 ### `astro-feed-kit` integration and utilities
 
-| Export                    | Kind     | Description                                                                                                                    |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `default` (`feedKit`)     | function | The Astro integration factory.                                                                                                 |
-| `defineFeedKitConfig`     | function | Merge user input with defaults and produce a fully resolved `ResolvedFeedKitConfig`. Useful when hand-rolling endpoints.       |
-| `generateFeed`            | function | Build a populated `Feed` instance from a `ResolvedFeedKitConfig`. Returns a `feed` library `Feed` ready for serialization.     |
-| `getFeedPath`             | function | Resolve the site-relative path for a feed format given a `ResolvedFeedKitConfig`, or `undefined` when that format is disabled. |
-| `tagCategoryResolver`     | function | Build a `category` resolver that emits `{name, term, domain}` with per-tag URLs.                                               |
-| `ItemSchema`              | schema   | Zod schema for the feed `Item` shape.                                                                                          |
-| `FeedEligibleEntrySchema` | schema   | Zod schema enforcing the minimum entry contract (`title`, `date`).                                                             |
-| `AuthorSchema`            | schema   | Zod schema for `{name, email, link, avatar}`.                                                                                  |
-| `CategorySchema`          | schema   | Zod schema for `{name, term, domain, scheme}`.                                                                                 |
-| `EnclosureSchema`         | schema   | Zod schema for media enclosures.                                                                                               |
-| `ExtensionSchema`         | schema   | Zod schema for feed extensions.                                                                                                |
+| Export                    | Kind     | Description                                                                                                                                                                                                                      |
+| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `default` (`feedKit`)     | function | The Astro integration factory.                                                                                                                                                                                                   |
+| `defineFeedKitConfig`     | function | Merge user input with defaults and produce a fully resolved `ResolvedFeedKitConfig`. Takes optional `AstroSiteOptions` (`site`, `base`, `trailingSlash`, `buildFormat`) to match your Astro project when hand-rolling endpoints. |
+| `generateFeed`            | function | Build a populated `Feed` instance from a `ResolvedFeedKitConfig`. Returns a `feed` library `Feed` ready for serialization.                                                                                                       |
+| `getFeedPath`             | function | Resolve the root-relative path for a feed format, including Astro's `base`, or `undefined` when that format is disabled.                                                                                                         |
+| `tagCategoryResolver`     | function | Build a `category` resolver that emits `{name, term, domain}` with per-tag URLs.                                                                                                                                                 |
+| `ItemSchema`              | schema   | Zod schema for the feed `Item` shape.                                                                                                                                                                                            |
+| `FeedEligibleEntrySchema` | schema   | Zod schema enforcing the minimum entry contract (`title`, `date`).                                                                                                                                                               |
+| `AuthorSchema`            | schema   | Zod schema for `{name, email, link, avatar}`.                                                                                                                                                                                    |
+| `CategorySchema`          | schema   | Zod schema for `{name, term, domain, scheme}`.                                                                                                                                                                                   |
+| `EnclosureSchema`         | schema   | Zod schema for media enclosures.                                                                                                                                                                                                 |
+| `ExtensionSchema`         | schema   | Zod schema for feed extensions.                                                                                                                                                                                                  |
 
 Types:
 
-`ExcerptBoundary`, `FeedEligibleEntry`, `FeedKitConfig`, `FormatFilenames`, `FormatsInput`, `Item`, `ItemResolver`, `ItemResolverArgs`, `ResolvedFeedKitConfig`, `Source`, `SourceInput`.
+`AstroSiteOptions`, `ExcerptBoundary`, `FeedEligibleEntry`, `FeedKitConfig`, `FormatFilenames`, `FormatsInput`, `Item`, `ItemResolver`, `ItemResolverArgs`, `ResolvedFeedKitConfig`, `Source`, `SourceInput`.
 
 ### `astro-feed-kit/components/FeedKit.astro` component
 

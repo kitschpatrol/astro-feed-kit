@@ -117,7 +117,7 @@ describe('defineFeedKitConfig', () => {
 
 	it('defaults id from siteLink and derives feed from siteLink + formats.rss', () => {
 		const resolved = defineFeedKitConfig(baseInput)
-		expect(resolved.feedOptions.id).toBe('https://example.com')
+		expect(resolved.feedOptions.id).toBe('https://example.com/')
 		expect(resolved.feedOptions.feed).toBe('https://example.com/rss.xml')
 	})
 
@@ -175,6 +175,70 @@ describe('defineFeedKitConfig', () => {
 	})
 })
 
+describe('defineFeedKitConfig: Astro site options', () => {
+	const inputWithoutLink = { ...baseInput, feedOptions: { description: 'd', title: 't' } }
+
+	it('defaults link, id, and feedLinks to site joined with base', () => {
+		const resolved = defineFeedKitConfig(inputWithoutLink, {
+			base: '/blog',
+			site: 'https://example.com',
+		})
+		expect(resolved.feedOptions.link).toBe('https://example.com/blog/')
+		expect(resolved.feedOptions.id).toBe('https://example.com/blog/')
+		expect(resolved.feedOptions.feed).toBe('https://example.com/blog/rss.xml')
+		expect(resolved.feedOptions.feedLinks).toEqual({
+			atom: 'https://example.com/blog/atom.xml',
+			json: 'https://example.com/blog/feed.json',
+			rss: 'https://example.com/blog/rss.xml',
+		})
+	})
+
+	it('defaults link to the site root when base is /', () => {
+		const resolved = defineFeedKitConfig(inputWithoutLink, { site: 'https://example.com' })
+		expect(resolved.feedOptions.link).toBe('https://example.com/')
+		expect(resolved.feedOptions.feedLinks?.rss).toBe('https://example.com/rss.xml')
+	})
+
+	it('prefers an explicit feedOptions.link over site and base, adding a trailing slash', () => {
+		const resolved = defineFeedKitConfig(
+			{
+				...baseInput,
+				feedOptions: { ...baseInput.feedOptions, link: 'https://feeds.example.org/x' },
+			},
+			{ base: '/blog', site: 'https://example.com' },
+		)
+		expect(resolved.feedOptions.link).toBe('https://feeds.example.org/x/')
+		expect(resolved.feedOptions.feedLinks?.json).toBe('https://feeds.example.org/x/feed.json')
+	})
+
+	it.each([
+		['blog', '/blog/'],
+		['/blog', '/blog/'],
+		['/blog/', '/blog/'],
+		['//blog//', '/blog/'],
+		['/a/b', '/a/b/'],
+		['', '/'],
+		['/', '/'],
+	])('normalizes base %j to %j', (base, expected) => {
+		expect(defineFeedKitConfig(baseInput, { base }).base).toBe(expected)
+	})
+
+	it.each([
+		[undefined, undefined, true],
+		['always', 'file', true],
+		['never', 'directory', false],
+		['ignore', 'directory', true],
+		['ignore', 'file', false],
+		['ignore', 'preserve', false],
+	] as const)(
+		'trailingSlash %j with build.format %j appends a trailing slash: %j',
+		(trailingSlash, buildFormat, expected) => {
+			const resolved = defineFeedKitConfig(baseInput, { buildFormat, trailingSlash })
+			expect(resolved.appendTrailingSlash).toBe(expected)
+		},
+	)
+})
+
 describe('getFeedPath', () => {
 	it('returns the configured filename prefixed with /', () => {
 		const resolved = defineFeedKitConfig(baseInput)
@@ -186,6 +250,15 @@ describe('getFeedPath', () => {
 	it('reflects user-supplied feed filenames', () => {
 		const resolved = defineFeedKitConfig({ ...baseInput, formats: { rss: 'feed.rss' } })
 		expect(getFeedPath(resolved, 'rss')).toBe('/feed.rss')
+	})
+
+	it('prefixes the path with the Astro base', () => {
+		const resolved = defineFeedKitConfig(
+			{ ...baseInput, formats: { rss: 'feed.rss' } },
+			{ base: '/blog', trailingSlash: 'never' },
+		)
+		expect(getFeedPath(resolved, 'rss')).toBe('/blog/feed.rss')
+		expect(getFeedPath(resolved, 'json')).toBe('/blog/feed.json')
 	})
 
 	it('returns undefined for disabled formats', () => {

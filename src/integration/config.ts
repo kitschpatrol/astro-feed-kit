@@ -1,4 +1,4 @@
-import type { AstroRenderer } from 'astro'
+import type { AstroConfig, AstroRenderer } from 'astro'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import type { FeedOptions } from 'feed'
 import type { Item } from './schemas'
@@ -14,6 +14,11 @@ import type { Item } from './schemas'
  */
 export type ItemResolverArgs<C extends CollectionKey = CollectionKey> = {
 	entry: CollectionEntry<C>
+	/**
+	 * The site root URL: `feedOptions.link`, which defaults to Astro's `site`
+	 * joined with `base`. Always ends with `/`, so relative paths can be resolved
+	 * against it directly with `new URL(path, siteUrl)`.
+	 */
 	siteUrl: string
 }
 
@@ -32,7 +37,8 @@ export type ItemResolverArgs<C extends CollectionKey = CollectionKey> = {
  * - `date`, `published` — `entry.data.date`
  * - `description` — `entry.data.description`
  * - `category` — `entry.data.tags` mapped to `{name, term}`
- * - `link` — `{siteUrl}/{entry.collection}/{entry.id}/` (override to customize
+ * - `link` — `{siteUrl}{entry.collection}/{entry.id}/`, with the trailing slash
+ *   following Astro's `trailingSlash` and `build.format` (override to customize
  *   per-entry URLs)
  *
  * `content` is **not** set by the resolver — it's filled in by the pipeline
@@ -64,7 +70,7 @@ export type Source<C extends CollectionKey = CollectionKey> = {
 	 * Overrides or augments built-in item defaults for this source. Called per
 	 * entry; returns a `Partial<Item>` — omitted fields fall through to the
 	 * baseline resolver. See `ItemResolver` for the baseline field list,
-	 * including the `link` default of `{siteUrl}/{collection}/{entry.id}/`.
+	 * including the `link` default of `{siteUrl}{collection}/{entry.id}/`.
 	 */
 	resolveItem?: ItemResolver<C>
 	/** Sorts this source's entries before the per-source `limit` is applied. */
@@ -98,6 +104,34 @@ export type SourceInput = string | { [C in CollectionKey]: Source<C> }[Collectio
 export type ExcerptBoundary =
 	| { comment: string; readMore?: boolean | string }
 	| { readMore?: boolean | string; selector: string }
+
+/**
+ * Astro project settings that decide where pages and feeds are served. The
+ * integration reads them from the Astro config. Standalone
+ * `defineFeedKitConfig` callers can pass the same values to match their
+ * project. Every field is optional and falls back to Astro's default.
+ */
+export type AstroSiteOptions = {
+	/**
+	 * Astro's `base`. Prefixes the feed paths and the default site URL. Defaults
+	 * to `/`.
+	 */
+	base?: string | undefined
+	/**
+	 * Astro's `build.format`. Decides whether default item links end with `/`
+	 * when `trailingSlash` is `'ignore'`. Defaults to `'directory'`.
+	 */
+	buildFormat?: AstroConfig['build']['format'] | undefined
+	/**
+	 * Astro's `site`. Joined with `base` to form the default `feedOptions.link`.
+	 */
+	site?: string | undefined
+	/**
+	 * Astro's `trailingSlash`. Decides whether default item links end with `/`.
+	 * Defaults to `'ignore'`.
+	 */
+	trailingSlash?: AstroConfig['trailingSlash'] | undefined
+}
 
 /**
  * Filenames for each feed format, relative to the site root. Used to populate
@@ -135,8 +169,10 @@ export type FeedKitConfig = {
 	 */
 	excerptBoundary?: ExcerptBoundary | false
 	/**
-	 * Feed-level metadata passed to the underlying `feed` library. Two fields are
-	 * deliberately excluded:
+	 * Feed-level metadata passed to the underlying `feed` library. `link` is the
+	 * site root URL: it defaults to Astro's `site` joined with `base`, and is
+	 * normalized to end with `/`. If you set it yourself, include your `base`
+	 * path. Two fields are deliberately excluded:
 	 *
 	 * - `feedLinks` — the per-format self-advertisement URLs written into each feed
 	 *   document. Always derived from `formats` + `link` at resolution time;
@@ -210,6 +246,17 @@ export type FeedKitConfig = {
  * them.
  */
 export type ResolvedFeedKitConfig = {
+	/**
+	 * Whether default item links end with `/`. Follows Astro's own rule: always
+	 * for `trailingSlash: 'always'`, never for `'never'`, and for `'ignore'` only
+	 * when `build.format` is `'directory'`.
+	 */
+	appendTrailingSlash: boolean
+	/**
+	 * Astro's `base`, normalized to start and end with `/`. Prefixes the paths
+	 * returned by `getFeedPath`.
+	 */
+	base: string
 	excerptBoundary: ExcerptBoundary | false
 	feedOptions: FeedOptions
 	/**
@@ -308,21 +355,63 @@ function joinUrl(base: string, path: string): string {
 	return new URL(path, base.endsWith('/') ? base : `${base}/`).href
 }
 
+const EDGE_SLASHES = /^\/+|\/+$/gv
+
+/** Normalize an Astro `base` to start and end with `/` (`/` for the root). */
+function normalizeBase(base: string): string {
+	const trimmed = base.replaceAll(EDGE_SLASHES, '')
+	return trimmed === '' ? '/' : `/${trimmed}/`
+}
+
+/**
+ * The site root URL with a trailing slash: the explicit `feedOptions.link` when
+ * given, otherwise Astro's `site` joined with `base`.
+ */
+function resolveSiteLink(
+	explicitLink: string | undefined,
+	site: string | undefined,
+	base: string,
+): string | undefined {
+	if (explicitLink !== undefined) {
+		return joinUrl(explicitLink, '')
+	}
+
+	return site === undefined ? undefined : joinUrl(site, base.slice(1))
+}
+
+/** Astro's rule for whether page URLs end with `/`. */
+function resolveAppendTrailingSlash(
+	trailingSlash: AstroConfig['trailingSlash'],
+	buildFormat: AstroConfig['build']['format'],
+): boolean {
+	return trailingSlash === 'ignore' ? buildFormat === 'directory' : trailingSlash === 'always'
+}
+
 /**
  * Merge user input with defaults and perform static resolution on
- * `feedOptions`. When `siteLink` is present, the following fields are derived
+ * `feedOptions`.
+ *
+ * `astro` carries the Astro project settings that decide where things are
+ * served. The integration passes them automatically; standalone callers can
+ * supply them to match their project.
+ *
+ * `link` defaults to Astro's `site` joined with `base`, and is normalized to
+ * end with `/`. When a link is available, the following fields are derived
  * unconditionally — user input for them is forbidden at the type level (see
  * `FeedKitConfig`):
  *
- * - `feedLinks.{rss,atom,json}` — `{link}/{formats[kind]}`
- * - `feed` — `{link}/{formats.rss}`
+ * - `feedLinks.{rss,atom,json}` — `{link}{formats[kind]}`
+ * - `feed` — `{link}{formats.rss}`
  *
  * `id` defaults to `link` only when the user did not supply it.
  *
  * `updated` is resolved dynamically inside `generateFeed` because it depends on
  * the set of eligible items.
  */
-export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig {
+export function defineFeedKitConfig(
+	input: FeedKitConfig,
+	astro: AstroSiteOptions = {},
+): ResolvedFeedKitConfig {
 	const formats: Partial<FormatFilenames> = {}
 	for (const kind of FORMAT_KINDS) {
 		const filename = resolveFormatEntry(input.formats?.[kind], DEFAULT_FORMATS[kind])
@@ -333,8 +422,9 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 
 	const knownRenderers = [...new Set([...DEFAULT_KNOWN_RENDERERS, ...(input.knownRenderers ?? [])])]
 
+	const base = normalizeBase(astro.base ?? '/')
 	const { feedOptions: inputFeedOptions } = input
-	const siteLink = inputFeedOptions.link
+	const siteLink = resolveSiteLink(inputFeedOptions.link, astro.site, base)
 
 	// Build feedOptions: spread user input (which by type can't include
 	// `feed` or `feedLinks`), then layer in derived fields only when we
@@ -344,6 +434,7 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 	// `feed` only include enabled formats.
 	const feedOptions: FeedOptions = { ...inputFeedOptions }
 	if (siteLink !== undefined) {
+		feedOptions.link = siteLink
 		const feedLinks: Partial<FormatFilenames> = {}
 		for (const kind of FORMAT_KINDS) {
 			const filename = formats[kind]
@@ -361,6 +452,11 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 	}
 
 	return {
+		appendTrailingSlash: resolveAppendTrailingSlash(
+			astro.trailingSlash ?? 'ignore',
+			astro.buildFormat ?? 'directory',
+		),
+		base,
 		excerptBoundary: input.excerptBoundary ?? false,
 		feedOptions,
 		formats,
@@ -374,16 +470,16 @@ export function defineFeedKitConfig(input: FeedKitConfig): ResolvedFeedKitConfig
 }
 
 /**
- * Return the configured filename for a given feed format, with a leading slash.
- * Returns `undefined` when the format has been disabled (`formats: { [kind]:
- * false }`). Useful when manually placing routes that must line up with the
- * filenames declared in `formats`, and for guarding `<link rel="alternate">`
- * tags on disabled formats.
+ * Return the root-relative path a feed format is served at, including Astro's
+ * `base` (e.g. `/blog/rss.xml`). Returns `undefined` when the format has been
+ * disabled (`formats: { [kind]: false }`). Useful when manually placing routes
+ * that must line up with the filenames declared in `formats`, and for guarding
+ * `<link rel="alternate">` tags on disabled formats.
  */
 export function getFeedPath(
 	config: ResolvedFeedKitConfig,
 	kind: keyof FormatFilenames,
 ): string | undefined {
 	const filename = config.formats[kind]
-	return filename === undefined ? undefined : `/${filename}`
+	return filename === undefined ? undefined : `${config.base}${filename}`
 }

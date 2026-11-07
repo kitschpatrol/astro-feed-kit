@@ -208,6 +208,35 @@ describe('pipeline: per-source resolveItem', () => {
 		expect(first.description).toBe('override summary')
 	})
 
+	it('builds default links from site, base, and trailingSlash, and passes siteUrl to resolvers', async () => {
+		setCollection('posts', [
+			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
+		])
+
+		let seenSiteUrl: string | undefined
+		const config = defineFeedKitConfig(
+			{
+				feedOptions: { description: 'd', title: 't' },
+				includeContent: false,
+				sources: [
+					source({
+						collection: 'posts',
+						resolveItem({ siteUrl }) {
+							seenSiteUrl = siteUrl
+							return {}
+						},
+					}),
+				],
+			},
+			{ base: '/blog', site: 'https://example.com', trailingSlash: 'never' },
+		)
+
+		const feed = await generateFeed(config)
+		const first = (feed.items as unknown as Item[])[0]!
+		expect(first.link).toBe('https://example.com/blog/posts/p1')
+		expect(seenSiteUrl).toBe('https://example.com/blog/')
+	})
+
 	it('string shorthand sources expand to default behavior', async () => {
 		setCollection('posts', [
 			makeEntry('posts', 'p1', { date: new Date('2026-01-01'), title: 'P1' }),
