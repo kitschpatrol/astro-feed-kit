@@ -5,6 +5,7 @@ import { defineConfig } from 'astro/config'
 export default defineConfig({
 	integrations: [
 		feedKit({
+			excerptBoundary: { comment: 'excerpt', readMore: true },
 			feedOptions: {
 				description: 'Demo feed exercising the astro-feed-kit integration.',
 				title: 'astro-feed-kit playground',
