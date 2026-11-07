@@ -1,8 +1,13 @@
-allowBuilds:
-  unrs-resolver: true
 ignoreWorkspaceRootCheck: true
 minimumReleaseAgeExclude:
-  - '@kitschpatrol/chagent@0.4.0'
+  - '@kitschpatrol/chagent@0.5.0'
+packageExtensions:
+  # Remove once @astrojs/astro2tsx declares the @emnapi/runtime matching its pinned @emnapi/core.
+  # https://github.com/withastro/astro/issues/18653
+  # https://github.com/withastro/compiler-rs/pull/219
+  '@astrojs/astro2tsx@0.1.3':
+    dependencies:
+      '@emnapi/runtime': 1.11.3
 packages:
   - .
   - playground
@@ -15,6 +20,8 @@ peerDependencyRules:
     eslint-plugin-jsx-a11y@6>eslint: ^10.0.0
 permissions:
   '@kitschpatrol/shared-config':
+    skills: true
+  tsdown:
     skills: true
 publicHoistPattern:
   - '@kitschpatrol/repo-config'

@@ -23,7 +23,7 @@
 		"@types/node": "~24.13.6",
 		"astro": "^7.4.7",
 		"astro-feed-kit": "link:..",
-		"poptab": "^1.2.2",
+		"poptab": "^1.2.3",
 		"sharp": "^0.35.5",
 		"shx": "^0.4.0"
 	},
