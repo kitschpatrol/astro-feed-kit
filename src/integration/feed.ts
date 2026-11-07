@@ -4,6 +4,7 @@ import { Feed } from 'feed'
 import type { ResolvedFeedKitConfig, Source } from './config'
 import type { Item } from './schemas'
 import { getFeedContent } from './collection'
+import { entrySlug, localizeConfig } from './config'
 import { createContainer, resolveContainerRenderers } from './container'
 import { resolveItemFields } from './item-map'
 import { sanitizeHtml } from './sanitize'
@@ -107,7 +108,7 @@ async function buildItem(
 	render: AstroContentRender | undefined,
 ): Promise<Item> {
 	const partial = resolveItemFields(
-		{ entry, siteUrl },
+		{ entry, locale: config.locale?.code, siteUrl, slug: entrySlug(config, entry.id) },
 		source.resolveItem,
 		config.appendTrailingSlash,
 	)
@@ -163,8 +164,14 @@ async function buildItem(
  * apply the top-level `sort` and `limit`, and finally derive
  * `feedOptions.updated` from the maximum item date when it was not supplied
  * statically.
+ *
+ * With `i18n`, the feed is the one for `config.locale`: pass a config from
+ * `localizeConfig` to build another locale's feed. A config that lists
+ * `locales` but names no `locale` builds the default locale's feed.
  */
-export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed> {
+export async function generateFeed(input: ResolvedFeedKitConfig): Promise<Feed> {
+	const config =
+		input.locales !== undefined && input.locale === undefined ? localizeConfig(input) : input
 	const siteUrl = config.feedOptions.link
 	if (siteUrl === undefined) {
 		throw new Error(

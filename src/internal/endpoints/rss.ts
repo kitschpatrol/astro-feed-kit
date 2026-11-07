@@ -4,8 +4,8 @@ import { loadFeed } from '../load-feed'
 
 export const prerender = true
 
-export const GET: APIRoute = async () => {
-	const feed = await loadFeed()
+export const GET: APIRoute = async ({ routePattern }) => {
+	const feed = await loadFeed(routePattern)
 	return new Response(serializeFeed(feed, 'rss'), {
 		headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' },
 	})

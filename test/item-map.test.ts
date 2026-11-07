@@ -9,17 +9,17 @@ import {
 
 const SITE_URL = 'https://example.com/'
 
-function makeEntry(data: Record<string, unknown>): CollectionEntry<CollectionKey> {
+function makeEntry(data: Record<string, unknown>, id = 'sample'): CollectionEntry<CollectionKey> {
 	return {
 		body: '',
 		collection: 'posts',
 		data,
-		id: 'sample',
+		id,
 	} as unknown as CollectionEntry<CollectionKey>
 }
 
 function makeArgs(data: Record<string, unknown>): ItemResolverArgs {
-	return { entry: makeEntry(data), siteUrl: SITE_URL }
+	return { entry: makeEntry(data), siteUrl: SITE_URL, slug: 'sample' }
 }
 
 describe('defaultItemResolver', () => {
@@ -51,8 +51,18 @@ describe('defaultItemResolver', () => {
 		const partial = defaultItemResolver({
 			entry: makeEntry({ date: new Date(), title: 'T' }),
 			siteUrl: 'https://example.com/blog/',
+			slug: 'sample',
 		})
 		expect(partial.link).toBe('https://example.com/blog/posts/sample/')
+	})
+
+	it('builds the default link from the slug, not from entry.id', () => {
+		const partial = defaultItemResolver({
+			entry: makeEntry({ date: new Date(), title: 'T' }, 'fr/sample'),
+			siteUrl: 'https://example.com/fr/',
+			slug: 'sample',
+		})
+		expect(partial.link).toBe('https://example.com/fr/posts/sample/')
 	})
 
 	it('never sets content — the pipeline fills it from the sanitized render', () => {
@@ -135,6 +145,19 @@ describe('resolveItemFields', () => {
 		expect(partial.description).toBe('default desc')
 	})
 
+	it('passes locale and slug through to the per-source resolveItem', () => {
+		const partial = resolveItemFields(
+			{
+				entry: makeEntry({ date: new Date(), title: 'T' }, 'fr/sample'),
+				locale: 'fr',
+				siteUrl: SITE_URL,
+				slug: 'sample',
+			},
+			({ locale, slug }) => ({ description: `${String(locale)}:${slug}` }),
+		)
+		expect(partial.description).toBe('fr:sample')
+	})
+
 	it('passes the args object through to the per-source resolveItem', () => {
 		const args = makeArgs({ date: new Date(), title: 'T' })
 		let received: ItemResolverArgs | undefined
@@ -167,6 +190,7 @@ describe('tagCategoryResolver', () => {
 			const result = tagCategoryResolver({ basePath })({
 				entry: makeEntry({ date: new Date(), tags: ['Foo'], title: 'T' }),
 				siteUrl: 'https://example.com/blog/',
+				slug: 'sample',
 			})
 			expect(result.category?.[0]?.domain).toBe('https://example.com/blog/tags/foo')
 		},
