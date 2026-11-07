@@ -412,7 +412,7 @@ import FeedKit from 'astro-feed-kit/components/FeedKit.astro'
 The integration runs in two phases:
 
 1. **At Astro startup (dev or build)** — the `astro:config:setup` hook resolves the user config, stashes it in a `globalThis` slot keyed by a per-instance UUID, registers a Vite plugin that exposes the slot as `virtual:astro-feed-kit/config`, and injects a prerendered route for each enabled format, pointing at the packaged endpoint entrypoints.
-2. **When an endpoint is evaluated** — each endpoint imports the virtual module, calls `generateFeed(config)`, and serializes the result via `feed.rss2()` / `feed.atom1()` / `feed.json1()`. In dev this happens on request; in production the routes are prerendered at build time. Each endpoint runs `generateFeed` independently, so with all three formats enabled every entry is rendered and sanitized three times per build.
+2. **When an endpoint is evaluated** — each endpoint loads the config from the virtual module, calls `generateFeed(config)`, and serializes the result via `feed.rss2()` / `feed.atom1()` / `feed.json1()`. In dev this happens on request; in production the routes are prerendered at build time. During a build, the enabled format endpoints share a single `generateFeed` pass, so each entry is rendered and sanitized once. In dev, every request regenerates the feed so content edits show up on reload.
 
 `generateFeed` loads and validates eligible entries (every entry must have `title` and `date`), spins up an `AstroContainer` with the configured renderers, renders each entry, sanitizes the output through Defuddle + remark, runs the resolver chain, and assembles `Item` objects. The `feedOptions.updated` timestamp defaults to the newest item date when not supplied.
 
