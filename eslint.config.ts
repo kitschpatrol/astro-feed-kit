@@ -8,6 +8,9 @@ export default eslintConfig({
 		// unsafe schemes) that exist to exercise the sanitizer. They aren't
 		// part of the tsconfig program and would only produce noise.
 		'test/fixtures/mdx/**/*.mdx',
+		// Fixture site posts link to pages the fixture doesn't build, to
+		// exercise relative URL resolution in feed content.
+		'test/fixtures/site/src/content/**/*.md',
 		'**/changelog.md',
 	],
 	type: 'lib',
