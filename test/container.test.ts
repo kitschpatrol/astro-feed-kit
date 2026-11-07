@@ -2,11 +2,14 @@
 // project is a temporary directory with hand-written packages in
 // `node_modules`, so module resolution runs for real instead of being mocked.
 
+import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { resolveContainerRenderers } from '../src/integration/container'
+
+const CONTAINER_MODULE_URL = new URL('../src/integration/container.ts', import.meta.url).href
 
 type FakePackage = {
 	files: Record<string, string>
@@ -116,6 +119,36 @@ describe('resolveContainerRenderers', () => {
 		await expect(
 			resolveContainerRenderers(['no-export', 'invalid-shape'], projectRoot),
 		).resolves.toEqual([])
+	})
+
+	it('ignores renderer packages reachable only through NODE_PATH', async () => {
+		const globalRoot = path.join(tempRoot, 'global')
+		await writePackage(globalRoot, 'global-only-renderer', {
+			files: { 'index.js': rendererModule('global-only-renderer') },
+			manifest: { exports: { '.': './index.js' }, type: 'module' },
+		})
+
+		// Node reads NODE_PATH once at startup, so the probe runs in a child
+		// process. pnpm's bin shims set NODE_PATH the same way.
+		const script = `
+import { resolveContainerRenderers } from ${JSON.stringify(CONTAINER_MODULE_URL)}
+const renderers = await resolveContainerRenderers(
+	['global-only-renderer', 'root-only-main'],
+	${JSON.stringify(projectRoot)},
+)
+console.log(JSON.stringify(renderers.map((renderer) => renderer.name)))
+`
+		const env = {
+			...process.env,
+			// eslint-disable-next-line ts/naming-convention -- Environment variable name
+			NODE_PATH: path.join(globalRoot, 'node_modules'),
+		}
+		const stdout = execFileSync(
+			process.execPath,
+			['--no-warnings', '--input-type=module', '--eval', script],
+			{ encoding: 'utf8', env },
+		)
+		expect(JSON.parse(stdout)).toEqual(['root-only-main'])
 	})
 
 	it('reports packages that fail to load, naming the package', async () => {

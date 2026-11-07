@@ -1,5 +1,6 @@
 import type { AstroRenderer } from 'astro'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
+import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -51,6 +52,28 @@ function isModuleNotFound(error: unknown): boolean {
 }
 
 /**
+ * Whether `pkg` is installed in a `node_modules` directory at or above
+ * `projectRoot`, which is where an ESM import of the renderer's
+ * `serverEntrypoint` will look. `require.resolve` also searches `NODE_PATH`,
+ * which pnpm's bin shims point at the store's shared hoisted packages, so on
+ * its own it can find renderers the project never installed, whose entrypoints
+ * then fail to import during the build.
+ */
+function isInstalledFrom(projectRoot: string, pkg: string): boolean {
+	let directory = path.resolve(projectRoot)
+	while (!existsSync(path.join(directory, 'node_modules', pkg, 'package.json'))) {
+		const parent = path.dirname(directory)
+		if (parent === directory) {
+			return false
+		}
+
+		directory = parent
+	}
+
+	return true
+}
+
+/**
  * Resolve the file behind the first specifier that exists, or `undefined` when
  * none do. Non-not-found resolution failures surface with context, attributed
  * to `pkg`.
@@ -93,7 +116,10 @@ function resolveFirstSpecifier(
  * entrypoint avoids the runtime deprecation warning.)
  *
  * Missing packages are silently skipped — the point of this helper is to
- * discover whichever subset of known renderers the consumer installed. Other
+ * discover whichever subset of known renderers the consumer installed. Only
+ * packages in a `node_modules` directory at or above `projectRoot` count, so
+ * renderers reachable only through `NODE_PATH` are ignored. Layouts without
+ * `node_modules` (such as Yarn Plug'n'Play) need explicit `renderers`. Other
  * failures (broken package, bad `getContainerRenderer` shape) surface with
  * context.
  *
@@ -112,6 +138,10 @@ export async function resolveContainerRenderers(
 	const requireFromRoot = createRequire(pathToFileURL(path.join(projectRoot, 'package.json')).href)
 
 	for (const pkg of packages) {
+		if (!isInstalledFrom(projectRoot, pkg)) {
+			continue
+		}
+
 		const resolvedPath = resolveFirstSpecifier(
 			requireFromRoot,
 			[`${pkg}/container-renderer`, pkg],
