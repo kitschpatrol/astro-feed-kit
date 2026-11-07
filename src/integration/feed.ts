@@ -7,6 +7,7 @@ import { getFeedContent } from './collection'
 import { entrySlug, localizeConfig } from './config'
 import { createContainer, resolveContainerRenderers } from './container'
 import { resolveItemFields } from './item-map'
+import { toManifestI18n } from './locale'
 import { sanitizeHtml } from './sanitize'
 import { ItemSchema } from './schemas'
 
@@ -125,7 +126,10 @@ async function buildItem(
 	let renderedHtml = ''
 	if (container !== undefined && render !== undefined) {
 		const { Content } = await render(entry)
-		const rawHtml = await container.renderToString(Content)
+		// Rendering with the permalink as the request gives components inside
+		// the entry a real `Astro.url`, and with i18n the locale prefix that
+		// drives `Astro.currentLocale`.
+		const rawHtml = await container.renderToString(Content, { request: new Request(link) })
 		renderedHtml = await sanitizeHtml(rawHtml, link, config.excerptBoundary)
 	}
 
@@ -205,7 +209,10 @@ export async function generateFeed(input: ResolvedFeedKitConfig): Promise<Feed> 
 						config.knownRenderers,
 						config.projectRoot ?? process.cwd(),
 					)
-		container = await createContainer(renderers)
+		container = await createContainer(renderers, {
+			i18n: config.locales === undefined ? undefined : toManifestI18n(config.locales),
+			site: config.site,
+		})
 		const astroContent = await import('astro:content')
 		render = astroContent.render
 	}

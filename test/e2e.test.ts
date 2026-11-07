@@ -166,7 +166,14 @@ describe('e2e: fixture site at the root', () => {
 
 	it('leaves out drafts and lists the newest post first', async () => {
 		const feed = await readJsonFeed('root')
-		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post', 'Full post'])
+		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post', 'Full post', 'MDX post'])
+	})
+
+	it('gives components inside entries their permalink and the site, with no locale', async () => {
+		const content = itemContent(await readJsonFeed('root'), 'MDX post')
+		expect(content).toContain('Locale: none.')
+		expect(content).toContain('Path: /posts/mdx-post/.')
+		expect(content).toContain('Site host: example.com.')
 	})
 
 	it('renders the full body of entries without an excerpt marker', async () => {
@@ -235,9 +242,16 @@ describe('e2e: fixture site with base, trailingSlash never, and custom formats',
 		expect(feed.items.map((item) => item.url)).toEqual([
 			'https://example.com/blog/posts/teaser',
 			'https://example.com/blog/posts/full',
+			'https://example.com/blog/posts/mdx-post',
 		])
 		expect(itemContent(feed, 'Teaser post')).toContain(
 			'<a href="https://example.com/blog/posts/teaser">Continue reading →</a>',
+		)
+	})
+
+	it('gives components inside entries a permalink under base', async () => {
+		expect(itemContent(await readJsonFeed('base'), 'MDX post')).toContain(
+			'Path: /blog/posts/mdx-post.',
 		)
 	})
 })
@@ -271,9 +285,15 @@ describe('e2e: fixture site with i18n', () => {
 
 	it('fills the default locale feed from its folder and from the collection root', async () => {
 		const feed = await readJsonFeed('i18n')
-		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post', 'Full post', 'Root post'])
+		expect(feed.items.map((item) => item.title)).toEqual([
+			'Teaser post',
+			'MDX post',
+			'Full post',
+			'Root post',
+		])
 		expect(feed.items.map((item) => item.url)).toEqual([
 			'https://example.com/posts/teaser/',
+			'https://example.com/posts/mdx-post/',
 			'https://example.com/posts/full/',
 			'https://example.com/posts/root/',
 		])
@@ -285,7 +305,7 @@ describe('e2e: fixture site with i18n', () => {
 
 	it('fills the other locale feed from its folder only, under its prefix', async () => {
 		const feed = await readJsonFeed('i18n', 'fr/feed.json')
-		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post (fr)'])
+		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post (fr)', 'MDX post (fr)'])
 		expect(feed.items[0]?.url).toBe('https://example.com/fr/posts/teaser/')
 		expect(feed.home_page_url).toBe('https://example.com/fr/')
 		expect(feed.feed_url).toBe('https://example.com/fr/feed.json')
@@ -299,6 +319,16 @@ describe('e2e: fixture site with i18n', () => {
 		expect(content).toContain('<a href="https://example.com/fr/posts/teaser/">Lire la suite</a>')
 		const english = itemContent(await readJsonFeed('i18n'), 'Teaser post')
 		expect(english).toContain('<a href="https://example.com/posts/teaser/">Continue reading →</a>')
+	})
+
+	it('gives components inside entries the locale of the feed being built', async () => {
+		const french = itemContent(await readJsonFeed('i18n', 'fr/feed.json'), 'MDX post (fr)')
+		expect(french).toContain('Locale: fr.')
+		expect(french).toContain('Path: /fr/posts/mdx-post/.')
+		expect(french).toContain('Site host: example.com.')
+		const english = itemContent(await readJsonFeed('i18n'), 'MDX post')
+		expect(english).toContain('Locale: en.')
+		expect(english).toContain('Path: /posts/mdx-post/.')
 	})
 
 	it('writes the language into RSS and Atom with per-locale self links', async () => {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { defaultLocale, entryLocale, findLocale, resolveLocales } from '../src/integration/locale'
+import {
+	defaultLocale,
+	entryLocale,
+	findLocale,
+	resolveLocales,
+	toManifestI18n,
+} from '../src/integration/locale'
 
 const EN_FR = { defaultLocale: 'en', locales: ['en', 'fr'] }
 
@@ -109,4 +115,31 @@ describe('entryLocale', () => {
 			expect(result.slug).toBe(id)
 		},
 	)
+})
+
+describe('toManifestI18n', () => {
+	const locales = ['en', { codes: ['it', 'it-VT'] as [string, ...string[]], path: 'italian' }]
+
+	it('names the default locale by path and leaves it unprefixed by default', () => {
+		expect(toManifestI18n(resolveLocales({ defaultLocale: 'en', locales }))).toEqual({
+			defaultLocale: 'en',
+			domainLookupTable: {},
+			domains: undefined,
+			fallback: undefined,
+			fallbackType: 'redirect',
+			locales: [
+				{ codes: ['en'], path: 'en' },
+				{ codes: ['it', 'it-VT'], path: 'italian' },
+			],
+			strategy: 'pathname-prefix-other-locales',
+		})
+	})
+
+	it('switches to the always-prefixed strategy when the default locale has a prefix', () => {
+		const manifest = toManifestI18n(
+			resolveLocales({ defaultLocale: 'italian', locales, routing: { prefixDefaultLocale: true } }),
+		)
+		expect(manifest.defaultLocale).toBe('italian')
+		expect(manifest.strategy).toBe('pathname-prefix-always-no-redirect')
+	})
 })

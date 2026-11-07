@@ -1,0 +1,12 @@
+---
+title: What components see
+date: 2026-04-13
+description: An MDX post whose component reports Astro.currentLocale, Astro.url, and Astro.site as rendered for the feed.
+---
+
+import Locale from '../../../components/Locale.astro'
+
+Components inside an entry are rendered with the entry's permalink as the request, so they
+see the locale of the feed being built:
+
+<Locale />

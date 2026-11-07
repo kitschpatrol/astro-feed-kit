@@ -1,3 +1,5 @@
+import type { SSRManifest } from 'astro'
+
 /**
  * Astro's `i18n` settings, as far as feeds are concerned. Astro's resolved
  * `AstroConfig['i18n']` satisfies this shape, and standalone callers can write
@@ -22,7 +24,7 @@ export type LocaleInfo = {
 	 * Every code that names this locale. `Astro.currentLocale` can return any of
 	 * them.
 	 */
-	codes: string[]
+	codes: [string, ...string[]]
 	isDefault: boolean
 	/** URL segment and content folder name. */
 	path: string
@@ -106,4 +108,28 @@ export function entryLocale<T extends LocaleInfo>(
 	}
 
 	return { locale: defaultLocale(locales), slug: id }
+}
+
+/** The i18n slice of Astro's build manifest. */
+export type ManifestI18n = NonNullable<SSRManifest['i18n']>
+
+/**
+ * The i18n slice of a build manifest, derived from the resolved locales. The
+ * content container computes `Astro.currentLocale` from this and the request
+ * path, the same way a built site does. Redirects and fallbacks never apply to
+ * a single rendered entry, so the strategy only records whether the default
+ * locale is prefixed, and `fallback` and `domains` stay unset.
+ */
+export function toManifestI18n(locales: readonly LocaleInfo[]): ManifestI18n {
+	const base = defaultLocale(locales)
+	return {
+		defaultLocale: base.path,
+		domainLookupTable: {},
+		domains: undefined,
+		fallback: undefined,
+		fallbackType: 'redirect',
+		locales: locales.map(({ codes, path }) => ({ codes, path })),
+		strategy:
+			base.prefix === '' ? 'pathname-prefix-other-locales' : 'pathname-prefix-always-no-redirect',
+	}
 }

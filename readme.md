@@ -371,8 +371,9 @@ The integration reads the locales from Astro's config and follows Astro's URL ru
 - **Links.** Default item links drop the locale folder and add the URL prefix instead: `fr/hello` links to `https://example.com/fr/posts/hello/`. Resolvers receive the locale-prefixed `siteUrl`, the `slug` (`hello`), and the `locale` code (`fr`).
 - **Feed metadata.** `feedOptions` and `excerptBoundary` accept a function of the locale code, so titles, descriptions, and read-more text can be translated. Each locale's `link`, `id`, and self links carry its prefix, and `language` defaults to the locale's code (the first code of a `{ path, codes }` locale, with underscores turned into hyphens).
 - **Head component.** `<FeedKit />` links to the feeds of the current page's locale.
+- **Rendered content.** Each entry is rendered with its permalink as the request, so components inside MDX see the feed's locale in `Astro.currentLocale`, along with `Astro.url` and `Astro.site`.
 
-Not covered: Astro's `fallback` (feeds never borrow entries from another locale) and `i18n.domains` (feeds are prerendered under one origin). Content rendered through the container sees no `Astro.currentLocale`.
+Not covered: Astro's `fallback` (feeds never borrow entries from another locale) and `i18n.domains` (feeds are prerendered under one origin).
 
 Standalone callers pass Astro's `i18n` settings through `AstroSiteOptions.i18n`. The resolved config describes the default locale; `localizeConfig(config, 'fr')` returns the same config for another locale, ready for `generateFeed` and `getFeedPath`.
 
@@ -458,7 +459,7 @@ The integration runs in two phases:
 1. **At Astro startup (dev or build)** — the `astro:config:setup` hook resolves the user config, stashes it in a `globalThis` slot keyed by a per-instance UUID, registers a Vite plugin that exposes the slot as `virtual:astro-feed-kit/config`, and injects a prerendered route for each enabled format (and, with `i18n`, for each locale), pointing at the packaged endpoint entrypoints.
 2. **When an endpoint is evaluated** — each endpoint loads the config from the virtual module, picks the locale its route pattern was mounted for, calls `generateFeed(config)`, and serializes the result via `serializeFeed`. In dev this happens on request; in production the routes are prerendered at build time. During a build, the enabled format endpoints share a single `generateFeed` pass per locale, so each entry is rendered and sanitized once. In dev, every request regenerates the feed so content edits show up on reload.
 
-`generateFeed` loads and validates eligible entries (every entry must have `title` and `date`), spins up an `AstroContainer` with the configured renderers, renders each entry, sanitizes the output through Defuddle + remark, runs the resolver chain, and assembles `Item` objects. The `feedOptions.updated` timestamp defaults to the newest item date when not supplied.
+`generateFeed` loads and validates eligible entries (every entry must have `title` and `date`), spins up an `AstroContainer` with the configured renderers and Astro's `site`, renders each entry with its permalink as the request (so components inside it see `Astro.url`, `Astro.site`, and, with `i18n`, `Astro.currentLocale`), sanitizes the output through Defuddle + remark, runs the resolver chain, and assembles `Item` objects. The `feedOptions.updated` timestamp defaults to the newest item date when not supplied.
 
 Resolver closures and filter functions are passed by reference through the `globalThis` slot rather than serialized, so they can reference anything in your `astro.config.ts`'s scope.
 

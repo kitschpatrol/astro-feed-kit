@@ -211,6 +211,13 @@ describe('defineFeedKitConfig: Astro site options', () => {
 		})
 	})
 
+	it("records Astro's site for the content container, and omits it when unknown", () => {
+		expect(defineFeedKitConfig(inputWithoutLink, { site: 'https://example.com' }).site).toBe(
+			'https://example.com',
+		)
+		expect('site' in defineFeedKitConfig(baseInput)).toBe(false)
+	})
+
 	it('defaults link to the site root when base is /', () => {
 		const resolved = defineFeedKitConfig(inputWithoutLink, { site: 'https://example.com' })
 		expect(resolved.feedOptions.link).toBe('https://example.com/')

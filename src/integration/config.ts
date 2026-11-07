@@ -343,6 +343,11 @@ export type ResolvedFeedKitConfig = {
 	 * and for exotic install layouts.
 	 */
 	renderers: AstroRenderer[]
+	/**
+	 * Astro's `site` as configured, when known. Handed to the content container
+	 * so components inside rendered entries see `Astro.site`.
+	 */
+	site?: string
 	sort: (a: Item, b: Item) => number
 	sources: Source[]
 }
@@ -558,6 +563,7 @@ export function defineFeedKitConfig(
 		knownRenderers,
 		limit: input.limit ?? DEFAULT_LIMIT,
 		renderers: input.renderers ?? [],
+		...(astro.site !== undefined && { site: astro.site }),
 		sort: input.sort ?? defaultItemSort,
 		sources: input.sources.map((source) => normalizeSource(source)),
 	}
