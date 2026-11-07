@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-07
+
+### Added
+
+- Export `AstroSiteOptions` and accept it as an optional second argument to `defineFeedKitConfig` for standalone callers to supply Astro site and routing settings.
+
+### Changed
+
+- **Breaking:** Require Astro `^7.3.6`, raising the minimum supported version to include upstream fixes for Container API `Astro.site` values and injected routes under i18n.
+- **Breaking:** Default `feedOptions.link` to Astro's `site` joined with `base` and normalize it to end with `/`, affecting feed self-links, the default feed ID, item links, and resolver `siteUrl`. Include `base` in `getFeedPath`, `<FeedKit />` links, startup logs, and tag category URLs.
+- **Breaking:** Match Astro's `trailingSlash` and `build.format` rules for default item links, changing default item GUIDs when trailing slashes are removed.
+- **Breaking:** Require `base` and `appendTrailingSlash` fields on `ResolvedFeedKitConfig`; `defineFeedKitConfig` populates both automatically.
+- Share one feed-generation pass across RSS, Atom, and JSON endpoints during builds, rendering and sanitizing each entry once while retaining regeneration on every development request.
+
+### Fixed
+
+- Correct Atom's `rel="self"` link to point to the Atom feed instead of the RSS feed.
+- Fix category slug generation to trim surrounding whitespace, preserve Unicode letters and digits, and collapse separators without leaving edge hyphens.
+- Ignore renderer packages available only through `NODE_PATH`, preventing pnpm builds from failing with `ERR_MODULE_NOT_FOUND`; installations without `node_modules` must supply explicit `renderers`.
+
+### Documentation
+
+- Correct the documented `feedOptions` type and defaults, clarify enabled-format link output and disabled `getFeedPath` results, and update API guidance and resolver examples for Astro routing settings.
+- Document HTML sanitization rules, relative URL resolution, allowed iframe hosts, and `srcset` limitations.
+- Explain shared feed generation during builds and regeneration on every development request.
+- Repair broken Datamation links in the HTML-in-feeds research notes.
+
+### Maintenance
+
+- Raise the bundled LinkeDOM requirement from `^0.18.14` to `^0.18.15`.
+- Refresh development dependencies and GitHub Actions, upgrade pnpm to 12.18.0, and supply the missing `@emnapi/runtime` dependency for Astro's checking tools.
+- Target Node.js 24 in builds to match the existing engine requirement, stop publishing source maps to reduce package size, and remove unused test configuration.
+- Generate changelogs during releases with Chagent and upgrade the release-changelog action to v3.
+- Add integration-hook and renderer-probing tests, plus end-to-end fixture builds covering generated feeds, head links, draft filtering, rendering, excerpts, and routing settings.
+- Build the plain Astro and Starlight playgrounds in CI on Linux, macOS, and Windows.
+- Exclude test fixture directories containing deliberately unresolved URLs from link checks.
+
 ## [0.5.1] - 2026-11-02
 
 ### Maintenance
@@ -177,3 +214,4 @@ No notable changes.
 [0.4.2]: https://github.com/kitschpatrol/astro-feed-kit/compare/v0.4.1...v0.4.2
 [0.5.0]: https://github.com/kitschpatrol/astro-feed-kit/compare/v0.4.2...v0.5.0
 [0.5.1]: https://github.com/kitschpatrol/astro-feed-kit/compare/v0.5.0...v0.5.1
+[0.6.0]: https://github.com/kitschpatrol/astro-feed-kit/compare/v0.5.1...v0.6.0
