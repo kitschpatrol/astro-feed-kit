@@ -29,6 +29,7 @@ export {
 	FeedEligibleEntrySchema,
 	ItemSchema,
 } from './integration/schemas'
+export { serializeFeed } from './integration/serialize'
 
 const ENDPOINT_FILES: Record<keyof FormatFilenames, string> = {
 	atom: './internal/endpoints/atom.js',

@@ -2,6 +2,7 @@ import type { AstroConfig, AstroRenderer } from 'astro'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import type { FeedOptions } from 'feed'
 import type { Item } from './schemas'
+import { assertLanguageTag } from './serialize'
 
 /**
  * Arguments passed to an `ItemResolver`. The resolver runs before the entry is
@@ -433,6 +434,10 @@ export function defineFeedKitConfig(
 	// `exactOptionalPropertyTypes`. `feedLinks` only includes enabled
 	// formats.
 	const feedOptions: FeedOptions = { ...inputFeedOptions }
+	if (feedOptions.language !== undefined) {
+		assertLanguageTag(feedOptions.language)
+	}
+
 	if (siteLink !== undefined) {
 		feedOptions.link = siteLink
 		const feedLinks: Partial<FormatFilenames> = {}

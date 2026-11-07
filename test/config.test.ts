@@ -160,6 +160,20 @@ describe('defineFeedKitConfig', () => {
 		expect(resolved.feedOptions.feedLinks?.rss).toBeUndefined()
 	})
 
+	it('keeps a feedOptions.language that is a language tag', () => {
+		const resolved = defineFeedKitConfig({
+			...baseInput,
+			feedOptions: { ...baseInput.feedOptions, language: 'pt-BR' },
+		})
+		expect(resolved.feedOptions.language).toBe('pt-BR')
+	})
+
+	it.each(['en us', 'fr"', ''])('rejects feedOptions.language %j', (language) => {
+		expect(() =>
+			defineFeedKitConfig({ ...baseInput, feedOptions: { ...baseInput.feedOptions, language } }),
+		).toThrow('is not a language tag')
+	})
+
 	it('merges DEFAULT_KNOWN_RENDERERS with user-supplied list, deduped', () => {
 		const resolved = defineFeedKitConfig({
 			...baseInput,
