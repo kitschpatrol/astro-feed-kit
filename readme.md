@@ -52,7 +52,7 @@ An [Astro](https://astro.build/) 7+ project with at least one [content collectio
 <!-- dependencies({ heading: false }) -->
 
 - [Node.js](https://nodejs.org/) 24.16.0 or newer (specifically `^24.16.0 || >=26.3.0`)
-- [astro](https://www.npmjs.com/package/astro) `^7.0.0` _(peer dependency)_
+- [astro](https://www.npmjs.com/package/astro) `^7.3.6` _(peer dependency)_
 
 <!-- /dependencies -->
 
