@@ -12,5 +12,10 @@ export default knipConfig({
 		'@astrojs/mdx', // Used by the e2e fixture sites above
 		'@kitschpatrol/chagent', // Typically invoked through bumpp's --execute argument, which Knip doesn't parse
 	],
-	ignoreWorkspaces: ['playground', 'playground-i18n', 'playground-starlight'],
+	ignoreWorkspaces: [
+		'playground',
+		'playground-i18n',
+		'playground-starlight',
+		'playground-starlight-i18n',
+	],
 })

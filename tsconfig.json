@@ -22,7 +22,8 @@
 		"**/node_modules/",
 		"./.astro",
 		"./playground",
-		"./playground-i18n"
+		"./playground-i18n",
+		"./playground-starlight-i18n"
 	],
 	"mdx": {
 		"plugins": ["remark-directive", "remark-attribute-list"]

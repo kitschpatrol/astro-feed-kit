@@ -1,0 +1,25 @@
+---
+title: astro-feed-kit
+description: Demo site for astro-feed-kit in a multilingual Starlight project.
+---
+
+This Starlight playground uses Starlight's built-in i18n setup: English docs in
+`src/content/docs/en/` and French docs in `src/content/docs/fr/`. Starlight
+derives Astro's `i18n` config from that, and `astro-feed-kit` with `i18n: true`
+publishes one feed per language under its URL prefix.
+
+## Feeds
+
+- [/en/rss.xml](/en/rss.xml)
+- [/en/atom.xml](/en/atom.xml)
+- [/en/feed.json](/en/feed.json)
+
+The French feeds live at [/fr/rss.xml](/fr/rss.xml), [/fr/atom.xml](/fr/atom.xml),
+and [/fr/feed.json](/fr/feed.json).
+
+## Entries
+
+The sidebar lists each demo entry. Their dated frontmatter is what makes them
+eligible for the feed (see the `filter` in `astro.config.ts`). "English only" has
+no French translation: Starlight serves the English page at `/fr/english-only/`
+as fallback content, but the French feed does not borrow it.

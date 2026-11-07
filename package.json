@@ -45,6 +45,7 @@
 		"dev": "pnpm -C playground run dev",
 		"dev-i18n": "pnpm -C playground-i18n run dev",
 		"dev-starlight": "pnpm -C playground-starlight run dev",
+		"dev-starlight-i18n": "pnpm -C playground-starlight-i18n run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint",
 		"prepare": "astro sync && pnpm run build",
