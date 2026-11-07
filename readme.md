@@ -41,7 +41,7 @@ It covers:
 - **Works with Starlight**\
   Starlight sits on top of stock `astro:content`, so the `docs` collection can be fed just like any other collection — see [Starlight](#starlight) below.
 - **Head component**\
-  A small `<FeedKit />` Astro component emits the three `<link rel="alternate">` tags in your document `<head>`.
+  A small `<FeedKit />` Astro component emits a `<link rel="alternate">` tag for each enabled feed format in your document `<head>`.
 
 ## Getting started
 
@@ -99,6 +99,8 @@ Filenames are configurable via the `formats` option.
 
 The integration uses Astro's top-level `site` URL to build per-item permalinks and feed self-links, unless you set `feedOptions.link` explicitly.
 
+Astro's `base` and `trailingSlash` options are not taken into account: the `<FeedKit />` link tags, the feed self-links, and the default per-item link (`{site}/{collection}/{id}/`) are all built from `site` alone. If your site sets either option, override `link` per source with `resolveItem` (see [Resolvers](#resolvers)).
+
 ### Head component
 
 To advertise the feeds to browsers and feed readers, drop `<FeedKit />` into your site's `<head>`:
@@ -120,23 +122,23 @@ import FeedKit from 'astro-feed-kit/components/FeedKit.astro'
 </html>
 ```
 
-This emits three `<link rel="alternate">` tags pointing to the three feed endpoints. The link `title` attribute defaults to `feedOptions.title` and can be overridden per page via a `title` prop.
+This emits one `<link rel="alternate">` tag per enabled format, pointing at that format's endpoint. The link `title` attribute defaults to `feedOptions.title` and can be overridden per page via a `title` prop.
 
 ## Configuration
 
 The integration accepts a single `FeedKitConfig` object.
 
-| Option            | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                              |
-| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sources`         | `SourceInput[]`                                                 | —                                                                                                                           | Required. One entry per content collection you want in the feed. A bare string is shorthand for `{ collection: string }`; use the object form to customize that source (see [Sources](#sources) below).  |
-| `feedOptions`     | `FeedOptions` (from `feed`)                                     | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site`.                                                            |
-| `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                        |
-| `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                      |
-| `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                  |
-| `excerptBoundary` | `ExcerptBoundary \| false`                                      | `false`                                                                                                                     | Where to truncate the rendered HTML. `false` disables truncation. Each boundary object accepts an optional `readMore` field (`true` or a custom string) to append a "Continue reading..." link.          |
-| `formats`         | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename. |
-| `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to probe when `renderers` is not supplied. Merged with a default list of known Astro renderers.                                                                             |
-| `renderers`       | `AstroRenderer[]`                                               | `[]`                                                                                                                        | Explicit list of Astro renderers to load into the content container. Skips `knownRenderers` probing when non-empty. Recommended for standalone `generateFeed` callers and exotic install layouts.        |
+| Option            | Type                                                            | Default                                                                                                                     | Description                                                                                                                                                                                                                                           |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`         | `SourceInput[]`                                                 | —                                                                                                                           | Required. One entry per content collection you want in the feed. A bare string is shorthand for `{ collection: string }`; use the object form to customize that source (see [Sources](#sources) below).                                               |
+| `feedOptions`     | `Omit<FeedOptions, 'feed' \| 'feedLinks'>` (from `feed`)        | —                                                                                                                           | Required. Passed to the underlying [feed](https://github.com/jpmonette/feed) library. `title` is required; `link` defaults to Astro's `site`; `id` defaults to `link`. `feed` and `feedLinks` are derived from `link` and `formats` and can't be set. |
+| `sort`            | `(a: Item, b: Item) => number`                                  | newest `date` first                                                                                                         | Comparator over the merged item set (after resolvers run). Items share a uniform shape regardless of source, so fields like `date`, `category`, and `link` are safe to read here.                                                                     |
+| `limit`           | `number`                                                        | `25`                                                                                                                        | Maximum items in the merged feed, applied after `sort`. Pass `Infinity` to include every item. Individual sources can cap themselves separately via `Source.limit`.                                                                                   |
+| `includeContent`  | `boolean`                                                       | `true`                                                                                                                      | When `false`, skips the container render and sanitize pipeline entirely — produces metadata-only feeds.                                                                                                                                               |
+| `excerptBoundary` | `ExcerptBoundary \| false`                                      | `false`                                                                                                                     | Where to truncate the rendered HTML. `false` disables truncation. Each boundary object accepts an optional `readMore` field (`true` or a custom string) to append a "Continue reading..." link.                                                       |
+| `formats`         | `Partial<Record<'atom' \| 'json' \| 'rss', boolean \| string>>` | `{ atom: 'atom.xml', json: 'feed.json', rss: 'rss.xml'}`                                                                    | Per-format filename overrides and enable/disable flags. Pass a string for a custom filename, `false` to disable that format entirely (no route, no `<link>`), or `true` / omit for the default filename.                                              |
+| `knownRenderers`  | `string[]`                                                      | `@astrojs/mdx`, `@astrojs/react`, `@astrojs/preact`, `@astrojs/svelte`, `@astrojs/vue`, `@astrojs/solid-js`, `@astrojs/lit` | Additional content renderers to probe when `renderers` is not supplied. Merged with a default list of known Astro renderers.                                                                                                                          |
+| `renderers`       | `AstroRenderer[]`                                               | `[]`                                                                                                                        | Explicit list of Astro renderers to load into the content container. Skips `knownRenderers` probing when non-empty. Recommended for standalone `generateFeed` callers and exotic install layouts.                                                     |
 
 ### Sources
 
@@ -319,6 +321,16 @@ feedKit({
 
 Any `content` returned from a resolver is dropped in this mode.
 
+### Sanitization
+
+Rendered HTML is cleaned up by [Defuddle](https://github.com/kepano/defuddle) and then passed through a [unified](https://unifiedjs.com) pipeline with an allowlist tuned for feed readers. The policy is fixed rather than configurable. In practice:
+
+- Relative `href` and `src` values are resolved to absolute URLs against the item's `link`, so links and images work inside feed readers. Responsive `srcset` attributes don't survive the markdown round-trip; each image is emitted with a single absolute `src`.
+- `<script>`, `<style>`, `<form>`, `<object>`, `<embed>`, and `<svg>` are dropped, along with inline `style` attributes and inline event handlers. `href` values are limited to `http`, `https`, `mailto`, and `tel`; `src` values to `http` and `https`.
+- `<iframe>` elements are kept only when their `src` is an `https` URL on one of these hosts: `bandcamp.com`, `codepen.io`, `codesandbox.io`, `gist.github.com`, `open.spotify.com`, `player.twitch.tv`, `player.vimeo.com`, `w.soundcloud.com`, `www.youtube.com`, `www.youtube-nocookie.com`. Everything else is removed. Open an issue if you need another host.
+- Links with `target="_blank"` get `rel="noopener noreferrer"`.
+- Headings, lists, tables, images, `<audio>`, `<video>`, `<figure>`, `<details>`, `<time>`, footnotes, and GFM task lists pass through.
+
 ## Starlight
 
 Starlight is a thin layer over stock `astro:content` — it registers no collections of its own, leaving the user to wire `docsLoader()` and `docsSchema()` into their own `src/content.config.ts`. Because `getCollection('docs')` and `render(entry)` are the standard Astro APIs, `astro-feed-kit` reads Starlight docs unmodified.
@@ -397,8 +409,8 @@ import FeedKit from 'astro-feed-kit/components/FeedKit.astro'
 
 The integration runs in two phases:
 
-1. **At Astro startup (dev or build)** — the `astro:config:setup` hook resolves the user config, stashes it in a `globalThis` slot keyed by a per-instance UUID, registers a Vite plugin that exposes the slot as `virtual:astro-feed-kit/config`, and injects three routes pointing at the packaged endpoint entrypoints.
-2. **When an endpoint is evaluated** — each endpoint imports the virtual module, calls `generateFeed(config)`, and serializes the result via `feed.rss2()` / `feed.atom1()` / `feed.json1()`. In dev this happens on request; in production the routes are prerendered at build time.
+1. **At Astro startup (dev or build)** — the `astro:config:setup` hook resolves the user config, stashes it in a `globalThis` slot keyed by a per-instance UUID, registers a Vite plugin that exposes the slot as `virtual:astro-feed-kit/config`, and injects a prerendered route for each enabled format, pointing at the packaged endpoint entrypoints.
+2. **When an endpoint is evaluated** — each endpoint imports the virtual module, calls `generateFeed(config)`, and serializes the result via `feed.rss2()` / `feed.atom1()` / `feed.json1()`. In dev this happens on request; in production the routes are prerendered at build time. Each endpoint runs `generateFeed` independently, so with all three formats enabled every entry is rendered and sanitized three times per build.
 
 `generateFeed` loads and validates eligible entries (every entry must have `title` and `date`), spins up an `AstroContainer` with the configured renderers, renders each entry, sanitizes the output through Defuddle + remark, runs the resolver chain, and assembles `Item` objects. The `feedOptions.updated` timestamp defaults to the newest item date when not supplied.
 
@@ -408,19 +420,19 @@ Resolver closures and filter functions are passed by reference through the `glob
 
 ### `astro-feed-kit` integration and utilities
 
-| Export                    | Kind     | Description                                                                                                                |
-| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `default` (`feedKit`)     | function | The Astro integration factory.                                                                                             |
-| `defineFeedKitConfig`     | function | Merge user input with defaults and produce a fully resolved `ResolvedFeedKitConfig`. Useful when hand-rolling endpoints.   |
-| `generateFeed`            | function | Build a populated `Feed` instance from a `ResolvedFeedKitConfig`. Returns a `feed` library `Feed` ready for serialization. |
-| `getFeedPath`             | function | Resolve the site-relative path for a feed format given a `ResolvedFeedKitConfig`.                                          |
-| `tagCategoryResolver`     | function | Build a `category` resolver that emits `{name, term, domain}` with per-tag URLs.                                           |
-| `ItemSchema`              | schema   | Zod schema for the feed `Item` shape.                                                                                      |
-| `FeedEligibleEntrySchema` | schema   | Zod schema enforcing the minimum entry contract (`title`, `date`).                                                         |
-| `AuthorSchema`            | schema   | Zod schema for `{name, email, link, avatar}`.                                                                              |
-| `CategorySchema`          | schema   | Zod schema for `{name, term, domain, scheme}`.                                                                             |
-| `EnclosureSchema`         | schema   | Zod schema for media enclosures.                                                                                           |
-| `ExtensionSchema`         | schema   | Zod schema for feed extensions.                                                                                            |
+| Export                    | Kind     | Description                                                                                                                    |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `default` (`feedKit`)     | function | The Astro integration factory.                                                                                                 |
+| `defineFeedKitConfig`     | function | Merge user input with defaults and produce a fully resolved `ResolvedFeedKitConfig`. Useful when hand-rolling endpoints.       |
+| `generateFeed`            | function | Build a populated `Feed` instance from a `ResolvedFeedKitConfig`. Returns a `feed` library `Feed` ready for serialization.     |
+| `getFeedPath`             | function | Resolve the site-relative path for a feed format given a `ResolvedFeedKitConfig`, or `undefined` when that format is disabled. |
+| `tagCategoryResolver`     | function | Build a `category` resolver that emits `{name, term, domain}` with per-tag URLs.                                               |
+| `ItemSchema`              | schema   | Zod schema for the feed `Item` shape.                                                                                          |
+| `FeedEligibleEntrySchema` | schema   | Zod schema enforcing the minimum entry contract (`title`, `date`).                                                             |
+| `AuthorSchema`            | schema   | Zod schema for `{name, email, link, avatar}`.                                                                                  |
+| `CategorySchema`          | schema   | Zod schema for `{name, term, domain, scheme}`.                                                                                 |
+| `EnclosureSchema`         | schema   | Zod schema for media enclosures.                                                                                               |
+| `ExtensionSchema`         | schema   | Zod schema for feed extensions.                                                                                                |
 
 Types:
 
