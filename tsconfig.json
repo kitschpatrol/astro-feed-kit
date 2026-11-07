@@ -9,14 +9,21 @@
 	// workspace's collection literals fail to type-check. We keep
 	// `playground-starlight`'s generated types (so `CollectionKey` resolves to
 	// a non-empty union at the root, which `src/` needs) and exclude the
-	// `playground` workspace entirely. Each playground runs its own
+	// other playground workspaces entirely. Each playground runs its own
 	// `astro check` independently, so playground coverage isn't lost.
 	"include": [
 		"**/**.*",
 		"./playground-starlight/.astro/types.d.ts",
 		"./playground-starlight/.astro/content.d.ts"
 	],
-	"exclude": ["**/dist/", "**/bin/", "**/node_modules/", "./.astro", "./playground"],
+	"exclude": [
+		"**/dist/",
+		"**/bin/",
+		"**/node_modules/",
+		"./.astro",
+		"./playground",
+		"./playground-i18n"
+	],
 	"mdx": {
 		"plugins": ["remark-directive", "remark-attribute-list"]
 	}

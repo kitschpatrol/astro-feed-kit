@@ -1,0 +1,40 @@
+---
+import { getCollection } from 'astro:content'
+import Layout from '../layouts/Layout.astro'
+
+const englishPosts = await getCollection('posts', (entry) => !entry.id.startsWith('fr/'))
+const posts = englishPosts.toSorted((a, b) => b.data.date.getTime() - a.data.date.getTime())
+---
+
+<Layout title="astro-feed-kit i18n playground">
+	<h1>astro-feed-kit i18n playground</h1>
+	<p>
+		English is the default locale, so its feeds are unprefixed. Entries at the collection root
+		belong here too.
+	</p>
+
+	<h2>Feeds</h2>
+	<ul>
+		<li>
+			<a href="/rss.xml">/rss.xml</a>
+		</li>
+		<li>
+			<a href="/atom.xml">/atom.xml</a>
+		</li>
+		<li>
+			<a href="/feed.json">/feed.json</a>
+		</li>
+	</ul>
+
+	<h2>Entries</h2>
+	<ul>
+		{posts.map((entry): astroHTML.JSX.Element => (
+			<li>
+				<code>{entry.id}</code> · <strong>{entry.data.title}</strong> ·{' '}
+				<time datetime={entry.data.date.toISOString()}>
+					{entry.data.date.toISOString().slice(0, 10)}
+				</time>
+			</li>
+		))}
+	</ul>
+</Layout>

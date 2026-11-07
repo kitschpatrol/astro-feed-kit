@@ -275,6 +275,30 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0
 
+  playground-i18n:
+    devDependencies:
+      '@astrojs/check':
+        specifier: ^0.9.12
+        version: 0.9.12(prettier-plugin-astro@1.1.2(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)
+      '@types/node':
+        specifier: ~24.13.6
+        version: 24.13.6
+      astro:
+        specifier: ^7.4.7
+        version: 7.4.7(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
+      astro-feed-kit:
+        specifier: link:..
+        version: link:..
+      poptab:
+        specifier: ^1.2.3
+        version: 1.2.3
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@24.13.6)
+      shx:
+        specifier: ^0.4.0
+        version: 0.4.0
+
   playground-starlight:
     devDependencies:
       '@astrojs/check':

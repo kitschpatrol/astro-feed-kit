@@ -9,5 +9,5 @@ export default knipConfig({
 	ignoreDependencies: [
 		'@kitschpatrol/chagent', // Typically invoked through bumpp's --execute argument, which Knip doesn't parse
 	],
-	ignoreWorkspaces: ['playground', 'playground-starlight'],
+	ignoreWorkspaces: ['playground', 'playground-i18n', 'playground-starlight'],
 })

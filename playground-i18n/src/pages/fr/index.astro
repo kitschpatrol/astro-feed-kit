@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content'
+import Layout from '../../layouts/Layout.astro'
+
+const frenchPosts = await getCollection('posts', (entry) => entry.id.startsWith('fr/'))
+const posts = frenchPosts.toSorted((a, b) => b.data.date.getTime() - a.data.date.getTime())
+---
+
+<Layout title="Bac à sable astro-feed-kit">
+	<h1>Bac à sable astro-feed-kit</h1>
+	<p>
+		The French feeds live under the <code>/fr/</code> prefix and hold only French entries.
+	</p>
+
+	<h2>Feeds</h2>
+	<ul>
+		<li>
+			<a href="/fr/rss.xml">/fr/rss.xml</a>
+		</li>
+		<li>
+			<a href="/fr/atom.xml">/fr/atom.xml</a>
+		</li>
+		<li>
+			<a href="/fr/feed.json">/fr/feed.json</a>
+		</li>
+	</ul>
+
+	<h2>Entries</h2>
+	<ul>
+		{posts.map((entry): astroHTML.JSX.Element => (
+			<li>
+				<code>{entry.id}</code> · <strong>{entry.data.title}</strong> ·{' '}
+				<time datetime={entry.data.date.toISOString()}>
+					{entry.data.date.toISOString().slice(0, 10)}
+				</time>
+			</li>
+		))}
+	</ul>
+</Layout>

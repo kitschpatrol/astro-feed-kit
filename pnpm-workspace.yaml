@@ -11,6 +11,7 @@ packageExtensions:
 packages:
   - .
   - playground
+  - playground-i18n
   - playground-starlight
 peerDependencyRules:
   allowedVersions:

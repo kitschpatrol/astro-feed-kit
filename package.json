@@ -43,6 +43,7 @@
 		"build": "tsdown && pnpm run -r astro sync",
 		"clean-deep": "shx rm -f pnpm-lock.yaml && git clean -fdX",
 		"dev": "pnpm -C playground run dev",
+		"dev-i18n": "pnpm -C playground-i18n run dev",
 		"dev-starlight": "pnpm -C playground-starlight run dev",
 		"fix": "ksc fix",
 		"lint": "ksc lint",
