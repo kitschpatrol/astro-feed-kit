@@ -47,6 +47,12 @@ jobs:
           ASTRO_TELEMETRY_DISABLED: 1
         run: pnpm run build
 
+      - name: Build playgrounds
+        env:
+          # Prevents clean-up related crashes on Windows
+          ASTRO_TELEMETRY_DISABLED: 1
+        run: pnpm --filter "astro-feed-kit-playground*" run build
+
       - name: Lint
         run: pnpm run lint
 
