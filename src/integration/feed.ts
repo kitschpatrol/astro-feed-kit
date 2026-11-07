@@ -219,11 +219,6 @@ export async function generateFeed(config: ResolvedFeedKitConfig): Promise<Feed>
 	const limited = sorted.slice(0, config.limit)
 
 	for (const item of limited) {
-		// The `feed` library's `Item` type uses strict-optional fields
-		// (`field?: T`), while the schema-inferred `Item` shape carries
-		// `field?: T | undefined`. Semantically identical; cast at the
-		// library boundary.
-
 		feed.addItem(item)
 	}
 

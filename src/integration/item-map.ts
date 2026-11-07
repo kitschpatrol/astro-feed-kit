@@ -118,10 +118,10 @@ function mergeSkippingUndefined(lower: Partial<Item>, higher: Partial<Item>): Pa
 		const value = higherRecord[key]
 		if (value === undefined) {
 			continue
-			// The Item type has narrow per-key value types; the loop widens them,
-			// and we reassign back via the same key. Safe within this function.
 		}
 
+		// The Item type has narrow per-key value types; the loop widens them,
+		// and we reassign back via the same key. Safe within this function.
 		;(merged as Record<string, unknown>)[key] = value
 	}
 
