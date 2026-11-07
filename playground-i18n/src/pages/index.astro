@@ -1,9 +1,8 @@
 ---
-import { getCollection } from 'astro:content'
 import Layout from '../layouts/Layout.astro'
+import { postPath, postsFor } from '../utils/posts'
 
-const englishPosts = await getCollection('posts', (entry) => !entry.id.startsWith('fr/'))
-const posts = englishPosts.toSorted((a, b) => b.data.date.getTime() - a.data.date.getTime())
+const posts = await postsFor('en')
 ---
 
 <Layout title="astro-feed-kit i18n playground">
@@ -30,7 +29,7 @@ const posts = englishPosts.toSorted((a, b) => b.data.date.getTime() - a.data.dat
 	<ul>
 		{posts.map((entry): astroHTML.JSX.Element => (
 			<li>
-				<code>{entry.id}</code> · <strong>{entry.data.title}</strong> ·{' '}
+				<code>{entry.id}</code> · <a href={postPath('en', entry.id)}>{entry.data.title}</a> ·{' '}
 				<time datetime={entry.data.date.toISOString()}>
 					{entry.data.date.toISOString().slice(0, 10)}
 				</time>

@@ -1,0 +1,25 @@
+---
+import type { CollectionEntry } from 'astro:content'
+import { render } from 'astro:content'
+import Layout from './Layout.astro'
+
+type Props = {
+	post: CollectionEntry<'posts'>
+}
+
+const { post } = Astro.props
+const { Content } = await render(post)
+---
+
+<Layout title={post.data.title}>
+	<h1>{post.data.title}</h1>
+	<p>
+		<code>{post.id}</code> ·{' '}
+		<time datetime={post.data.date.toISOString()}>{post.data.date.toISOString().slice(0, 10)}</time>
+		{post.data.tags.length > 0 && <span> · {post.data.tags.join(', ')}</span>}
+	</p>
+	<p>
+		<em>{post.data.description}</em>
+	</p>
+	<Content />
+</Layout>
