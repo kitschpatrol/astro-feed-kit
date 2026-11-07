@@ -71,5 +71,8 @@ export default defineConfig({
 			],
 		}),
 	],
+	// Without a root locale, Starlight builds no page at `/`: English lives
+	// at `/en/` and French at `/fr/`. Send the root to the default locale.
+	redirects: { '/': '/en/' },
 	site: 'http://localhost:4321',
 })
