@@ -36,7 +36,7 @@ Sources:
 
 - <https://github.com/Ranchero-Software/NetNewsWire/blob/main/Shared/Article%20Rendering/main.js>
 - <https://timotijhof.net/posts/2025/youtube-in-a-feed-reader-is-better/>
-- <https://datamation.com/columns/executive_tech/article.php/3617901/CSS-Support-is-Poor-in-RSS-Feed-Readers.htm>
+- <https://www.datamation.com/trends/css-support-is-poor-in-rss-feed-readers/>
 - <https://github.com/Ranchero-Software/NetNewsWire/issues/3683>
 
 **NetNewsWire:** Renders in WKWebView. Doesn't heavily sanitize — runs a post-processing JS pass (`main.js`) that makes iframes responsive, clamps percentage-height iframes, and rewrites Feedbin proxy image URLs. Effectively permissive: iframes, images, tables all pass through. Inline `<script>` won't execute in the way you'd expect because WebKit renders after DOM injection, but it's still a concern.
@@ -342,4 +342,4 @@ Reader behavior:
 - [NetNewsWire article rendering main.js](https://github.com/Ranchero-Software/NetNewsWire/blob/main/Shared/Article%20Rendering/main.js)
 - [NetNewsWire issue #3683 — YouTube Inline Video Support](https://github.com/Ranchero-Software/NetNewsWire/issues/3683)
 - [YouTube in a feed reader is... better? (2025)](https://timotijhof.net/posts/2025/youtube-in-a-feed-reader-is-better/)
-- [Datamation — CSS Support is Poor in RSS Feed Readers](https://datamation.com/columns/executive_tech/article.php/3617901/CSS-Support-is-Poor-in-RSS-Feed-Readers.htm)
+- [Datamation — CSS Support is Poor in RSS Feed Readers](https://www.datamation.com/trends/css-support-is-poor-in-rss-feed-readers/)

@@ -1,0 +1,2 @@
+# Fixtures contain deliberately unresolved links for URL resolution tests.
+exclude_path = ['(^|/)test/fixtures/']
