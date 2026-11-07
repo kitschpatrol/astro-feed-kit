@@ -1,13 +1,18 @@
 import type { ItemResolver, ItemResolverArgs } from './config'
 import type { Item } from './schemas'
 
+/**
+ * Lowercase, drop everything that isn't a letter, number, whitespace, or hyphen
+ * (Unicode-aware, so non-Latin tags keep their characters), collapse whitespace
+ * and hyphen runs to a single hyphen, and strip edge hyphens.
+ */
 function slugify(text: string): string {
 	return text
-		.toLowerCase()
-		.replaceAll(/[^\w\s\-]/gv, '')
-		.replaceAll(/\s+/gv, '-')
-		.replaceAll(/-+/gv, '-')
 		.trim()
+		.toLowerCase()
+		.replaceAll(/[^\p{L}\p{N}\s\-]/gv, '')
+		.replaceAll(/[\s\-]+/gv, '-')
+		.replaceAll(/^-|-$/gv, '')
 }
 
 function ensureTrailingSlash(value: string): string {

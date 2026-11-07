@@ -171,3 +171,42 @@ describe('tagCategoryResolver', () => {
 		])
 	})
 })
+
+describe('tag slugs', () => {
+	it('trims surrounding whitespace before slugifying', () => {
+		const partial = defaultItemResolver(
+			makeArgs({ date: new Date(), tags: ['  Hello World  '], title: 'T' }),
+		)
+		expect(partial.category).toEqual([{ name: '  Hello World  ', term: 'hello-world' }])
+	})
+
+	it('keeps non-ASCII letters and digits', () => {
+		const partial = defaultItemResolver(
+			makeArgs({ date: new Date(), tags: ['Café', '日本語', 'Café 2'], title: 'T' }),
+		)
+		expect(partial.category?.map((category) => category.term)).toEqual(['café', '日本語', 'café-2'])
+	})
+
+	it('drops punctuation, collapses separators, and strips edge hyphens', () => {
+		const partial = defaultItemResolver(
+			makeArgs({
+				date: new Date(),
+				tags: ['C++ / Rust!', '--foo -- bar--', 'Node.js'],
+				title: 'T',
+			}),
+		)
+		expect(partial.category?.map((category) => category.term)).toEqual([
+			'c-rust',
+			'foo-bar',
+			'nodejs',
+		])
+	})
+
+	it('percent-encodes non-ASCII slugs in tagCategoryResolver domains', () => {
+		const build = tagCategoryResolver({ basePath: '/tags/' })
+		const result = build(makeArgs({ date: new Date(), tags: ['Café'], title: 'T' }))
+		expect(result.category).toEqual([
+			{ domain: 'https://example.com/tags/caf%C3%A9', name: 'Café', term: 'café' },
+		])
+	})
+})
