@@ -14,6 +14,5 @@ export default defineConfig({
 	fixedExtension: false,
 	format: 'esm',
 	outDir: 'dist',
-	sourcemap: true,
 	target: 'node24',
 })
