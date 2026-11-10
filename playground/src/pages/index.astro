@@ -43,7 +43,8 @@ const merged: Entry[] = [
 	<ul>
 		{merged.map((entry): astroHTML.JSX.Element => (
 			<li>
-				<code>{entry.collection}</code> · <strong>{entry.title}</strong> ·{' '}
+				<code>{entry.collection}</code> ·{' '}
+				<a href={`/${entry.collection}/${entry.id}/`}>{entry.title}</a> ·{' '}
 				<time datetime={entry.date.toISOString()}>{entry.date.toISOString().slice(0, 10)}</time>
 			</li>
 		))}

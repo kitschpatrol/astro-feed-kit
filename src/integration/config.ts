@@ -1,7 +1,10 @@
 import type { AstroConfig, AstroRenderer } from 'astro'
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import type { FeedOptions } from 'feed'
+import type { AstroI18nOptions, LocaleInfo } from './locale'
 import type { Item } from './schemas'
+import { defaultLocale, entryLocale, findLocale, resolveLocales } from './locale'
+import { assertLanguageTag } from './serialize'
 
 /**
  * Arguments passed to an `ItemResolver`. The resolver runs before the entry is
@@ -15,11 +18,22 @@ import type { Item } from './schemas'
 export type ItemResolverArgs<C extends CollectionKey = CollectionKey> = {
 	entry: CollectionEntry<C>
 	/**
-	 * The site root URL: `feedOptions.link`, which defaults to Astro's `site`
-	 * joined with `base`. Always ends with `/`, so relative paths can be resolved
-	 * against it directly with `new URL(path, siteUrl)`.
+	 * The code of the locale whose feed is being built, such as `fr`. Only set
+	 * when `i18n` is enabled.
+	 */
+	locale?: string | undefined
+	/**
+	 * The root URL pages live under: `feedOptions.link`, which defaults to
+	 * Astro's `site` joined with `base`, plus the locale's URL prefix (`fr/`)
+	 * when `i18n` is enabled. Always ends with `/`, so relative paths can be
+	 * resolved against it directly with `new URL(path, siteUrl)`.
 	 */
 	siteUrl: string
+	/**
+	 * `entry.id` without its locale folder: `fr/hello` becomes `hello`. Equal to
+	 * `entry.id` when `i18n` is off or the id has no locale folder.
+	 */
+	slug: string
 }
 
 /**
@@ -37,7 +51,7 @@ export type ItemResolverArgs<C extends CollectionKey = CollectionKey> = {
  * - `date`, `published` — `entry.data.date`
  * - `description` — `entry.data.description`
  * - `category` — `entry.data.tags` mapped to `{name, term}`
- * - `link` — `{siteUrl}{entry.collection}/{entry.id}/`, with the trailing slash
+ * - `link` — `{siteUrl}{entry.collection}/{slug}/`, with the trailing slash
  *   following Astro's `trailingSlash` and `build.format` (override to customize
  *   per-entry URLs)
  *
@@ -70,7 +84,7 @@ export type Source<C extends CollectionKey = CollectionKey> = {
 	 * Overrides or augments built-in item defaults for this source. Called per
 	 * entry; returns a `Partial<Item>` — omitted fields fall through to the
 	 * baseline resolver. See `ItemResolver` for the baseline field list,
-	 * including the `link` default of `{siteUrl}{collection}/{entry.id}/`.
+	 * including the `link` default of `{siteUrl}{collection}/{slug}/`.
 	 */
 	resolveItem?: ItemResolver<C>
 	/** Sorts this source's entries before the per-source `limit` is applied. */
@@ -106,6 +120,13 @@ export type ExcerptBoundary =
 	| { readMore?: boolean | string; selector: string }
 
 /**
+ * A value that may differ per locale. With `i18n: true`, pass a function to
+ * receive each locale's code and return that locale's value. Without `i18n`,
+ * only the plain value is accepted.
+ */
+export type Localizable<T> = ((locale: string) => T) | T
+
+/**
  * Astro project settings that decide where pages and feeds are served. The
  * integration reads them from the Astro config. Standalone
  * `defineFeedKitConfig` callers can pass the same values to match their
@@ -122,6 +143,11 @@ export type AstroSiteOptions = {
 	 * when `trailingSlash` is `'ignore'`. Defaults to `'directory'`.
 	 */
 	buildFormat?: AstroConfig['build']['format'] | undefined
+	/**
+	 * Astro's `i18n`. Read when `FeedKitConfig.i18n` is `true` to decide which
+	 * locales get a feed and where each one is served.
+	 */
+	i18n?: AstroI18nOptions | undefined
 	/**
 	 * Astro's `site`. Joined with `base` to form the default `feedOptions.link`.
 	 */
@@ -165,14 +191,17 @@ export type FeedKitConfig = {
 	/**
 	 * Truncates each entry's rendered HTML at a marker. Defaults to `false` (full
 	 * content). Pass an `ExcerptBoundary` object to enable truncation, optionally
-	 * with a `readMore` link appended after the cut.
+	 * with a `readMore` link appended after the cut. With `i18n: true`, a
+	 * function of the locale code can localize the `readMore` text.
 	 */
-	excerptBoundary?: ExcerptBoundary | false
+	excerptBoundary?: Localizable<ExcerptBoundary | false>
 	/**
 	 * Feed-level metadata passed to the underlying `feed` library. `link` is the
 	 * site root URL: it defaults to Astro's `site` joined with `base`, and is
 	 * normalized to end with `/`. If you set it yourself, include your `base`
-	 * path. Two fields are deliberately excluded:
+	 * path. With `i18n: true`, a function of the locale code can localize `title`
+	 * and `description`; each locale's `link` gets its URL prefix, and `language`
+	 * defaults to the locale's code. Two fields are deliberately excluded:
 	 *
 	 * - `feedLinks` — the per-format self-advertisement URLs written into each feed
 	 *   document. Always derived from `formats` + `link` at resolution time;
@@ -185,7 +214,7 @@ export type FeedKitConfig = {
 	 * If you need to advertise feeds at a different origin (e.g. a CDN), open an
 	 * issue — we'll add a first-class option rather than reopen this foot-gun.
 	 */
-	feedOptions: Omit<FeedOptions, 'feed' | 'feedLinks'>
+	feedOptions: Localizable<Omit<FeedOptions, 'feed' | 'feedLinks'>>
 	/**
 	 * Per-format filename overrides and enable/disable flags. Pass `false` to
 	 * disable a format entirely (no route injected, no `<link>` tag rendered, no
@@ -193,6 +222,15 @@ export type FeedKitConfig = {
 	 * default filename. Pass a string to enable with a custom filename.
 	 */
 	formats?: FormatsInput
+	/**
+	 * Publish one feed per locale of an Astro `i18n` site. Each locale's feeds
+	 * are served under its URL prefix (`/rss.xml` for an unprefixed default
+	 * locale, `/fr/rss.xml` for `fr`), contain only entries from its content
+	 * folder (`src/content/posts/fr/`), and link to pages under that prefix.
+	 * Entries outside any locale folder belong to the default locale. Defaults to
+	 * `false`. Requires Astro's `i18n` config.
+	 */
+	i18n?: boolean
 	/**
 	 * Whether to populate each item's full HTML `content` field. Defaults to
 	 * `true`. Set to `false` to publish a metadata-only feed (title, description,
@@ -241,10 +279,22 @@ export type FeedKitConfig = {
 }
 
 /**
+ * A locale together with the feed settings resolved for it: that locale's
+ * `feedOptions` (with its own `link`, `id`, `feedLinks`, and `language`) and
+ * `excerptBoundary`.
+ */
+export type ResolvedLocale = LocaleInfo & {
+	excerptBoundary: ExcerptBoundary | false
+	feedOptions: FeedOptions
+}
+
+/**
  * Fully resolved feed configuration produced by `defineFeedKitConfig`. Defaults
  * are merged in, and static resolution has populated the derivable
  * `feedOptions` fields (`link`, `id`, `feedLinks`) where the user did not
- * supply them.
+ * supply them. With `i18n`, `feedOptions` and `excerptBoundary` describe the
+ * locale in `locale`, which starts out as the default locale; `localizeConfig`
+ * switches to another.
  */
 export type ResolvedFeedKitConfig = {
 	/**
@@ -270,6 +320,13 @@ export type ResolvedFeedKitConfig = {
 	knownRenderers: string[]
 	limit: number
 	/**
+	 * The locale this config describes. Set only with `i18n`: the default locale
+	 * after `defineFeedKitConfig`, or whichever locale `localizeConfig` picked.
+	 */
+	locale?: ResolvedLocale
+	/** Every locale of the site, in Astro's order. Set only with `i18n`. */
+	locales?: ResolvedLocale[]
+	/**
 	 * Absolute filesystem path to the consumer's project root. Populated by the
 	 * integration from `astroConfig.root` so endpoint-time renderer probing
 	 * resolves bare specifiers against the consumer's `node_modules`, regardless
@@ -286,6 +343,11 @@ export type ResolvedFeedKitConfig = {
 	 * and for exotic install layouts.
 	 */
 	renderers: AstroRenderer[]
+	/**
+	 * Astro's `site` as configured, when known. Handed to the content container
+	 * so components inside rendered entries see `Astro.site`.
+	 */
+	site?: string
 	sort: (a: Item, b: Item) => number
 	sources: Source[]
 }
@@ -296,7 +358,10 @@ const DEFAULT_FORMATS: FormatFilenames = {
 	rss: 'rss.xml',
 }
 
-const FORMAT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<keyof FormatFilenames>
+/** Every feed format, in the order routes are injected and logged. */
+export const FORMAT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<
+	keyof FormatFilenames
+>
 
 /**
  * Resolve one user-supplied `formats` entry. `undefined` and `true` enable the
@@ -365,19 +430,21 @@ function normalizeBase(base: string): string {
 }
 
 /**
- * The site root URL with a trailing slash: the explicit `feedOptions.link` when
- * given, otherwise Astro's `site` joined with `base`.
+ * The root URL pages live under, with a trailing slash: the explicit
+ * `feedOptions.link` when given, otherwise Astro's `site` joined with `base`;
+ * either way followed by the locale's URL `prefix` (`''` or `fr/`).
  */
 function resolveSiteLink(
 	explicitLink: string | undefined,
 	site: string | undefined,
 	base: string,
+	prefix: string,
 ): string | undefined {
 	if (explicitLink !== undefined) {
-		return joinUrl(explicitLink, '')
+		return joinUrl(explicitLink, prefix)
 	}
 
-	return site === undefined ? undefined : joinUrl(site, base.slice(1))
+	return site === undefined ? undefined : joinUrl(site, base.slice(1) + prefix)
 }
 
 /** Astro's rule for whether page URLs end with `/`. */
@@ -386,6 +453,63 @@ function resolveAppendTrailingSlash(
 	buildFormat: AstroConfig['build']['format'],
 ): boolean {
 	return trailingSlash === 'ignore' ? buildFormat === 'directory' : trailingSlash === 'always'
+}
+
+/**
+ * Resolve a `Localizable` for one locale. Plain values pass through. A function
+ * needs a locale to be called with, so without `i18n` it is an error.
+ */
+function resolveLocalizable<T>(
+	value: Localizable<T>,
+	locale: string | undefined,
+	field: string,
+): T {
+	if (typeof value !== 'function') {
+		return value
+	}
+
+	if (locale === undefined) {
+		throw new Error(
+			`astro-feed-kit: ${field} is a function, which needs \`i18n: true\` so there is a locale to pass it.`,
+		)
+	}
+
+	// `typeof` narrowed out the plain `T` branch; what is left is the function form.
+	return (value as (locale: string) => T)(locale)
+}
+
+/**
+ * Build one feed's `FeedOptions`: spread the user's input (which by type can't
+ * include `feed` or `feedLinks`), then layer in derived fields only when the
+ * `siteLink` they depend on is known. This avoids writing `undefined` into
+ * strict-optional library properties under `exactOptionalPropertyTypes`.
+ * `feedLinks` only includes enabled formats.
+ */
+function buildFeedOptions(
+	inputFeedOptions: Omit<FeedOptions, 'feed' | 'feedLinks'>,
+	siteLink: string | undefined,
+	formats: Partial<FormatFilenames>,
+): FeedOptions {
+	const feedOptions: FeedOptions = { ...inputFeedOptions }
+	if (feedOptions.language !== undefined) {
+		assertLanguageTag(feedOptions.language)
+	}
+
+	if (siteLink !== undefined) {
+		feedOptions.link = siteLink
+		const feedLinks: Partial<FormatFilenames> = {}
+		for (const kind of FORMAT_KINDS) {
+			const filename = formats[kind]
+			if (filename !== undefined) {
+				feedLinks[kind] = joinUrl(siteLink, filename)
+			}
+		}
+
+		feedOptions.feedLinks = feedLinks
+		feedOptions.id ??= siteLink
+	}
+
+	return feedOptions
 }
 
 /**
@@ -405,6 +529,11 @@ function resolveAppendTrailingSlash(
  *
  * `id` defaults to `link` only when the user did not supply it.
  *
+ * With `i18n: true`, `feedOptions` and `excerptBoundary` are resolved once per
+ * locale from `astro.i18n`: each locale's `link` carries its URL prefix,
+ * `language` defaults to its code, and the results are kept in `locales`. The
+ * returned config describes the default locale; see `localizeConfig`.
+ *
  * `updated` is resolved dynamically inside `generateFeed` because it depends on
  * the set of eligible items.
  */
@@ -421,61 +550,129 @@ export function defineFeedKitConfig(
 	}
 
 	const knownRenderers = [...new Set([...DEFAULT_KNOWN_RENDERERS, ...(input.knownRenderers ?? [])])]
-
 	const base = normalizeBase(astro.base ?? '/')
-	const { feedOptions: inputFeedOptions } = input
-	const siteLink = resolveSiteLink(inputFeedOptions.link, astro.site, base)
 
-	// Build feedOptions: spread user input (which by type can't include
-	// `feed` or `feedLinks`), then layer in derived fields only when we
-	// have the `siteLink` they depend on. This avoids writing `undefined`
-	// into strict-optional library properties under
-	// `exactOptionalPropertyTypes`. `feedLinks` only includes enabled
-	// formats.
-	const feedOptions: FeedOptions = { ...inputFeedOptions }
-	if (siteLink !== undefined) {
-		feedOptions.link = siteLink
-		const feedLinks: Partial<FormatFilenames> = {}
-		for (const kind of FORMAT_KINDS) {
-			const filename = formats[kind]
-			if (filename !== undefined) {
-				feedLinks[kind] = joinUrl(siteLink, filename)
-			}
-		}
-
-		feedOptions.feedLinks = feedLinks
-		feedOptions.id ??= siteLink
-	}
-
-	return {
+	const common = {
 		appendTrailingSlash: resolveAppendTrailingSlash(
 			astro.trailingSlash ?? 'ignore',
 			astro.buildFormat ?? 'directory',
 		),
 		base,
-		excerptBoundary: input.excerptBoundary ?? false,
-		feedOptions,
 		formats,
 		includeContent: input.includeContent ?? true,
 		knownRenderers,
 		limit: input.limit ?? DEFAULT_LIMIT,
 		renderers: input.renderers ?? [],
+		...(astro.site !== undefined && { site: astro.site }),
 		sort: input.sort ?? defaultItemSort,
 		sources: input.sources.map((source) => normalizeSource(source)),
+	}
+
+	function resolveFeedSettings(locale: LocaleInfo | undefined) {
+		const code = locale?.code
+		const inputFeedOptions = resolveLocalizable(input.feedOptions, code, 'feedOptions')
+		const siteLink = resolveSiteLink(inputFeedOptions.link, astro.site, base, locale?.prefix ?? '')
+		const feedOptions = buildFeedOptions(inputFeedOptions, siteLink, formats)
+		const excerptBoundary =
+			input.excerptBoundary === undefined
+				? false
+				: resolveLocalizable(input.excerptBoundary, code, 'excerptBoundary')
+		return { excerptBoundary, feedOptions }
+	}
+
+	if (input.i18n !== true) {
+		return { ...common, ...resolveFeedSettings(undefined) }
+	}
+
+	if (astro.i18n === undefined) {
+		throw new Error(
+			"astro-feed-kit: `i18n: true` needs Astro's `i18n` config (`defaultLocale` and `locales`), " +
+				'which is not set.',
+		)
+	}
+
+	const locales = resolveLocales(astro.i18n).map((locale): ResolvedLocale => {
+		const settings = resolveFeedSettings(locale)
+		// Astro allows underscores in locale codes, but a language tag uses hyphens.
+		settings.feedOptions.language ??= locale.code.replaceAll('_', '-')
+		assertLanguageTag(settings.feedOptions.language)
+		return { ...locale, ...settings }
+	})
+
+	const initial = defaultLocale(locales)
+	return {
+		...common,
+		excerptBoundary: initial.excerptBoundary,
+		feedOptions: initial.feedOptions,
+		locale: initial,
+		locales,
 	}
 }
 
 /**
+ * The same config described for another locale: `feedOptions`,
+ * `excerptBoundary`, and `locale` switch to the locale named by `locale`, which
+ * may be any of its codes or its path. `undefined` selects the default locale.
+ * Without `i18n` the config is returned unchanged.
+ */
+export function localizeConfig(
+	config: ResolvedFeedKitConfig,
+	locale?: string,
+): ResolvedFeedKitConfig {
+	const { locales } = config
+	if (locales === undefined) {
+		return config
+	}
+
+	const target = locale === undefined ? defaultLocale(locales) : findLocale(locales, locale)
+	if (target === undefined) {
+		throw new Error(
+			`astro-feed-kit: unknown locale ${JSON.stringify(locale)}. Configured locales: ` +
+				`${locales.map((candidate) => candidate.code).join(', ')}.`,
+		)
+	}
+
+	return {
+		...config,
+		excerptBoundary: target.excerptBoundary,
+		feedOptions: target.feedOptions,
+		locale: target,
+	}
+}
+
+/**
+ * `entry.id` without its locale folder, for the locales in `config`. Equal to
+ * the id when `i18n` is off or the id has no locale folder.
+ */
+export function entrySlug(config: ResolvedFeedKitConfig, id: string): string {
+	return config.locales === undefined ? id : entryLocale(id, config.locales).slug
+}
+
+/**
+ * The route pattern a feed format is injected at, relative to Astro's `base`:
+ * the filename under the config's locale prefix, such as `/fr/rss.xml`. Returns
+ * `undefined` when the format is disabled.
+ */
+export function feedRoutePattern(
+	config: ResolvedFeedKitConfig,
+	kind: keyof FormatFilenames,
+): string | undefined {
+	const filename = config.formats[kind]
+	return filename === undefined ? undefined : `/${config.locale?.prefix ?? ''}${filename}`
+}
+
+/**
  * Return the root-relative path a feed format is served at, including Astro's
- * `base` (e.g. `/blog/rss.xml`). Returns `undefined` when the format has been
- * disabled (`formats: { [kind]: false }`). Useful when manually placing routes
- * that must line up with the filenames declared in `formats`, and for guarding
- * `<link rel="alternate">` tags on disabled formats.
+ * `base` and the config's locale prefix (e.g. `/blog/fr/rss.xml`). Returns
+ * `undefined` when the format has been disabled (`formats: { [kind]: false }`).
+ * Useful when manually placing routes that must line up with the filenames
+ * declared in `formats`, and for guarding `<link rel="alternate">` tags on
+ * disabled formats. Pass a config from `localizeConfig` for another locale.
  */
 export function getFeedPath(
 	config: ResolvedFeedKitConfig,
 	kind: keyof FormatFilenames,
 ): string | undefined {
-	const filename = config.formats[kind]
-	return filename === undefined ? undefined : `${config.base}${filename}`
+	const pattern = feedRoutePattern(config, kind)
+	return pattern === undefined ? undefined : `${config.base}${pattern.slice(1)}`
 }

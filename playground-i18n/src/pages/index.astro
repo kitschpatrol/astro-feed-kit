@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { postPath, postsFor } from '../utils/posts'
+
+const posts = await postsFor('en')
+---
+
+<Layout title="astro-feed-kit i18n playground">
+	<h1>astro-feed-kit i18n playground</h1>
+	<p>
+		English is the default locale, so its feeds are unprefixed. Entries at the collection root
+		belong here too.
+	</p>
+
+	<h2>Feeds</h2>
+	<ul>
+		<li>
+			<a href="/rss.xml">/rss.xml</a>
+		</li>
+		<li>
+			<a href="/atom.xml">/atom.xml</a>
+		</li>
+		<li>
+			<a href="/feed.json">/feed.json</a>
+		</li>
+	</ul>
+
+	<h2>Entries</h2>
+	<ul>
+		{posts.map((entry): astroHTML.JSX.Element => (
+			<li>
+				<code>{entry.id}</code> · <a href={postPath('en', entry.id)}>{entry.data.title}</a> ·{' '}
+				<time datetime={entry.data.date.toISOString()}>
+					{entry.data.date.toISOString().slice(0, 10)}
+				</time>
+			</li>
+		))}
+	</ul>
+</Layout>

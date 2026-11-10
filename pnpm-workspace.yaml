@@ -11,7 +11,9 @@ packageExtensions:
 packages:
   - .
   - playground
+  - playground-i18n
   - playground-starlight
+  - playground-starlight-i18n
 peerDependencyRules:
   allowedVersions:
     # Remove once the installed version declares ESLint 10 support.

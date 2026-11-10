@@ -7,21 +7,27 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import type { FeedKitConfig, ResolvedFeedKitConfig } from '../src/integration/config'
+import type { AstroI18nOptions } from '../src/integration/locale'
 import feedKit from '../src/index'
 
 type AstroSettings = {
 	base?: string
 	format?: 'directory' | 'file' | 'preserve'
+	i18n?: AstroI18nOptions
 	site?: string | undefined
 	trailingSlash?: 'always' | 'ignore' | 'never'
 }
 
 const PROJECT_ROOT = pathToFileURL(path.join(path.sep, 'projects', 'site', path.sep))
 
+const baseFeedOptions = { description: 'd', title: 't' }
+
 const baseInput: FeedKitConfig = {
-	feedOptions: { description: 'd', title: 't' },
+	feedOptions: baseFeedOptions,
 	sources: ['posts'],
 }
+
+const EN_FR: AstroI18nOptions = { defaultLocale: 'en', locales: ['en', 'fr'] }
 
 /** Run `astro:config:setup` and capture everything the hook hands back to Astro. */
 function setup(input: FeedKitConfig, settings: AstroSettings = {}) {
@@ -33,6 +39,7 @@ function setup(input: FeedKitConfig, settings: AstroSettings = {}) {
 		config: {
 			base: settings.base ?? '/',
 			build: { format: settings.format ?? 'directory' },
+			i18n: settings.i18n,
 			root: PROJECT_ROOT,
 			site: 'site' in settings ? settings.site : 'https://example.com',
 			trailingSlash: settings.trailingSlash ?? 'ignore',
@@ -152,7 +159,7 @@ describe('feedKit integration: astro:config:setup', () => {
 	it('prefers an explicit feedOptions.link over the Astro site', async () => {
 		const { updateConfig } = setup({
 			...baseInput,
-			feedOptions: { ...baseInput.feedOptions, link: 'https://feeds.example.org' },
+			feedOptions: { ...baseFeedOptions, link: 'https://feeds.example.org' },
 		})
 		const config = await loadVirtualConfig(updateConfig)
 		expect(config.feedOptions.link).toBe('https://feeds.example.org/')
@@ -161,6 +168,61 @@ describe('feedKit integration: astro:config:setup', () => {
 	it('fails fast when neither feedOptions.link nor the Astro site is set', () => {
 		expect(() => setup(baseInput, { site: undefined })).toThrow(
 			'feedOptions.link was not provided and astro config has no `site` URL set',
+		)
+	})
+})
+
+describe('feedKit integration: i18n', () => {
+	it('injects one set of endpoints per locale, the unprefixed default locale first', () => {
+		const { injectRoute, logger } = setup({ ...baseInput, i18n: true }, { i18n: EN_FR })
+		expect(injectedRoutes(injectRoute)).toEqual([
+			{ endpoint: 'atom.js', pattern: '/atom.xml', prerender: true },
+			{ endpoint: 'json.js', pattern: '/feed.json', prerender: true },
+			{ endpoint: 'rss.js', pattern: '/rss.xml', prerender: true },
+			{ endpoint: 'atom.js', pattern: '/fr/atom.xml', prerender: true },
+			{ endpoint: 'json.js', pattern: '/fr/feed.json', prerender: true },
+			{ endpoint: 'rss.js', pattern: '/fr/rss.xml', prerender: true },
+		])
+		expect(logger.info).toHaveBeenCalledWith(
+			'mounted feed endpoints: /atom.xml, /feed.json, /rss.xml, /fr/atom.xml, /fr/feed.json, /fr/rss.xml',
+		)
+	})
+
+	it('prefixes every locale when prefixDefaultLocale is set, logging paths under base', () => {
+		const { injectRoute, logger } = setup(
+			{ ...baseInput, formats: { atom: false, json: false }, i18n: true },
+			{ base: '/blog', i18n: { ...EN_FR, routing: { prefixDefaultLocale: true } } },
+		)
+		expect(injectedRoutes(injectRoute).map((route) => route.pattern)).toEqual([
+			'/en/rss.xml',
+			'/fr/rss.xml',
+		])
+		expect(logger.info).toHaveBeenCalledWith(
+			'mounted feed endpoints: /blog/en/rss.xml, /blog/fr/rss.xml',
+		)
+	})
+
+	it('exposes every locale through the virtual module, described for the default one', async () => {
+		const { updateConfig } = setup({ ...baseInput, i18n: true }, { i18n: EN_FR })
+		const config = await loadVirtualConfig(updateConfig)
+		expect(config.locales?.map((locale) => locale.code)).toEqual(['en', 'fr'])
+		expect(config.locale?.code).toBe('en')
+		expect(config.feedOptions.language).toBe('en')
+		expect(config.feedOptions.link).toBe('https://example.com/')
+		expect(config.locales?.[1]?.feedOptions.link).toBe('https://example.com/fr/')
+	})
+
+	it('ignores Astro i18n settings unless i18n is enabled', async () => {
+		const { injectRoute, updateConfig } = setup(baseInput, { i18n: EN_FR })
+		expect(injectRoute).toHaveBeenCalledTimes(3)
+		const config = await loadVirtualConfig(updateConfig)
+		expect(config.locales).toBeUndefined()
+		expect(config.feedOptions.language).toBeUndefined()
+	})
+
+	it('fails fast when i18n is enabled without Astro i18n settings', () => {
+		expect(() => setup({ ...baseInput, i18n: true })).toThrow(
+			"`i18n: true` needs Astro's `i18n` config",
 		)
 	})
 })
