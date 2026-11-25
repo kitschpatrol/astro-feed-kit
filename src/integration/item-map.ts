@@ -60,9 +60,10 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
 /**
  * Built-in item defaults. Produces a `Partial<Item>` from the common Astro
  * frontmatter conventions (`title`, `date`, `description`, `tags`) plus a
- * default `link` derived from `siteUrl`, `entry.collection`, and `entry.id`,
- * ending with `/` when `appendTrailingSlash` is set. This is the baseline that
- * a user's `Source.resolveItem` overlay merges on top of.
+ * default `link` derived from `siteUrl`, `entry.collection`, and `slug` (the
+ * entry id without its locale folder), ending with `/` when
+ * `appendTrailingSlash` is set. This is the baseline that a user's
+ * `Source.resolveItem` overlay merges on top of.
  *
  * The category default intentionally emits `{name, term}` only — no `domain`.
  * Sites that want per-tag URLs in the feed should spread
@@ -73,7 +74,7 @@ function categoryFromTags(value: unknown): Item['category'] | undefined {
  * sanitized rendered HTML after all resolvers have run.
  */
 export function defaultItemResolver(
-	{ entry, siteUrl }: ItemResolverArgs,
+	{ entry, siteUrl, slug }: ItemResolverArgs,
 	appendTrailingSlash = true,
 ): Partial<Item> {
 	const { data } = entry
@@ -82,7 +83,7 @@ export function defaultItemResolver(
 	const description = asString(readField(data, 'description'))
 	const category = categoryFromTags(readField(data, 'tags'))
 
-	const path = `${entry.collection}/${entry.id}${appendTrailingSlash ? '/' : ''}`
+	const path = `${entry.collection}/${slug}${appendTrailingSlash ? '/' : ''}`
 	const result: Partial<Item> = {
 		link: new URL(path, ensureTrailingSlash(siteUrl)).href,
 	}

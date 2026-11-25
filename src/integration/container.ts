@@ -1,9 +1,10 @@
-import type { AstroRenderer } from 'astro'
+import type { AstroRenderer, SSRManifest } from 'astro'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { ManifestI18n } from './locale'
 
 /**
  * Probe a renderer package's `getContainerRenderer` export and return the value
@@ -171,16 +172,48 @@ export async function resolveContainerRenderers(
 }
 
 /**
+ * What rendered entries should see of the site around them.
+ */
+export type ContainerOptions = {
+	/**
+	 * The i18n slice of a build manifest (see `toManifestI18n`), so components
+	 * inside entries see `Astro.currentLocale`.
+	 */
+	i18n?: ManifestI18n | undefined
+	/** Astro's `site`, so components inside entries see `Astro.site`. */
+	site?: string | undefined
+}
+
+/**
  * Build an `AstroContainer` seeded with the given renderer descriptors. The
  * container is needed because feed content is rendered outside any normal page
  * context — we ask Astro to render an entry's `Content` component to a string,
  * then sanitize the result.
  */
-export async function createContainer(renderers: AstroRenderer[]): Promise<AstroContainer> {
+export async function createContainer(
+	renderers: AstroRenderer[],
+	options: ContainerOptions = {},
+): Promise<AstroContainer> {
 	// `astro:container` is a Vite virtual module — loaded dynamically so the
 	// barrel can be safely imported from `astro.config.ts` (where Vite hasn't
 	// resolved virtual modules yet) without crashing.
 	const { loadRenderers } = await import('astro:container')
 	const loaded = await loadRenderers(renderers)
-	return AstroContainer.create({ renderers: loaded })
+
+	const containerOptions: NonNullable<Parameters<typeof AstroContainer.create>[0]> = {
+		renderers: loaded,
+	}
+	if (options.site !== undefined) {
+		containerOptions.astroConfig = { site: options.site }
+	}
+
+	if (options.i18n !== undefined) {
+		// The container reads `i18n` only from a build manifest, and fills
+		// every other manifest field with a default, so a manifest holding
+		// just `i18n` is enough even though `create` types it as complete.
+		const manifest: Pick<SSRManifest, 'i18n'> = { i18n: options.i18n }
+		containerOptions.manifest = manifest as SSRManifest
+	}
+
+	return AstroContainer.create(containerOptions)
 }

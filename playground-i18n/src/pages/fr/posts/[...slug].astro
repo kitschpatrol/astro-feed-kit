@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from 'astro:content'
+import Post from '../../../layouts/Post.astro'
+import { postsFor, postSlug } from '../../../utils/posts'
+
+/**
+ * One page per French post, at the path the French feed links to.
+ *
+ * @returns A static path for every entry, with the entry as its props.
+ */
+export async function getStaticPaths() {
+	const posts = await postsFor('fr')
+	return posts.map((post) => ({ params: { slug: postSlug(post.id) }, props: { post } }))
+}
+
+type Props = {
+	post: CollectionEntry<'posts'>
+}
+
+const { post } = Astro.props
+---
+
+<Post post={post} />

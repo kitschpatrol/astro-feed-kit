@@ -1,0 +1,34 @@
+---
+import type { CollectionEntry } from 'astro:content'
+import { getCollection, render } from 'astro:content'
+import Layout from '../../layouts/Layout.astro'
+
+/**
+ * One page per note, at the path the feed links to.
+ *
+ * @returns A static path for every entry, with the entry as its props.
+ */
+export async function getStaticPaths() {
+	const notes = await getCollection('notes')
+	return notes.map((note) => ({ params: { slug: note.id }, props: { note } }))
+}
+
+type Props = {
+	note: CollectionEntry<'notes'>
+}
+
+const { note } = Astro.props
+const { Content } = await render(note)
+---
+
+<Layout title={note.data.title}>
+	<h1>{note.data.title}</h1>
+	<p>
+		<time datetime={note.data.date.toISOString()}>{note.data.date.toISOString().slice(0, 10)}</time>
+		{note.data.categories.length > 0 && <span> · {note.data.categories.join(', ')}</span>}
+	</p>
+	<p>
+		<em>{note.data.summary}</em>
+	</p>
+	<Content />
+</Layout>

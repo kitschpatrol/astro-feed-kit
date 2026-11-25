@@ -1,5 +1,6 @@
 import type { CollectionEntry, CollectionKey } from 'astro:content'
 import type { ResolvedFeedKitConfig, Source } from './config'
+import { entryLocale } from './locale'
 import { FeedEligibleEntrySchema } from './schemas'
 
 function readField(data: unknown, key: string): unknown {
@@ -35,8 +36,9 @@ export type SourceEntries = {
  * Load each configured source's eligible entries. For every source, applies
  * four gates in order:
  *
- * 1. Filter — built-in gate (drops `draft: true`) composed with the source's
- *    optional `filter`.
+ * 1. Filter — built-in gates (drops `draft: true`, and with `i18n` keeps only
+ *    entries whose locale folder matches the config's locale) composed with the
+ *    source's optional `filter`.
  * 2. Contract validation — `FeedEligibleEntrySchema` (`{title, date}`) is enforced
  *    on each surviving entry's `data`. Throws with collection and id context on
  *    failure; silent exclusion would mask real problems.
@@ -53,6 +55,12 @@ export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<Sou
 	// Vite hasn't booted yet) without crashing.
 	const { getCollection } = await import('astro:content')
 
+	const { locale, locales } = config
+	const matchesLocale = (entry: CollectionEntry<CollectionKey>): boolean =>
+		locale === undefined ||
+		locales === undefined ||
+		entryLocale(entry.id, locales).locale.code === locale.code
+
 	const groups: SourceEntries[] = []
 	for (const source of config.sources) {
 		// Aliased to a local so the call site reads `sourceFilter(entry)`
@@ -66,7 +74,7 @@ export async function getFeedContent(config: ResolvedFeedKitConfig): Promise<Sou
 		const entries = await getCollection(
 			source.collection as CollectionKey,
 			(entry: CollectionEntry<CollectionKey>) => {
-				if (!defaultEligibilityFilter(entry)) {
+				if (!defaultEligibilityFilter(entry) || !matchesLocale(entry)) {
 					return false
 				}
 

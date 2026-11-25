@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SourceInput } from '../src/integration/config'
 import type { Item } from '../src/integration/schemas'
-import { defineFeedKitConfig } from '../src/integration/config'
+import { defineFeedKitConfig, localizeConfig } from '../src/integration/config'
 import { generateFeed } from '../src/integration/feed'
 
 type FakeEntry = {
@@ -25,7 +25,12 @@ type FakeSource = {
 	collection: string
 	filter?: (entry: FakeEntry) => boolean
 	limit?: number
-	resolveItem?: (args: { entry: FakeEntry; siteUrl: string }) => Partial<Item>
+	resolveItem?: (args: {
+		entry: FakeEntry
+		locale?: string | undefined
+		siteUrl: string
+		slug: string
+	}) => Partial<Item>
 	sort?: (a: FakeEntry, b: FakeEntry) => number
 }
 
@@ -275,5 +280,60 @@ describe('pipeline: per-source resolveItem', () => {
 		expect(first.title).toBe('P1')
 		// Default link builder: {siteUrl}/{collection}/{entry.id}/
 		expect(first.link).toBe('https://example.com/posts/p1/')
+	})
+})
+
+describe('pipeline: i18n', () => {
+	const astro = {
+		i18n: { defaultLocale: 'en', locales: ['en', 'fr'] },
+		site: 'https://example.com',
+	}
+
+	function i18nConfig() {
+		setCollection('posts', [
+			makeEntry('posts', 'a', { date: new Date('2026-01-01'), title: 'A' }),
+			makeEntry('posts', 'en/b', { date: new Date('2026-02-01'), title: 'B' }),
+			makeEntry('posts', 'fr/c', { date: new Date('2026-03-01'), title: 'C' }),
+		])
+		return defineFeedKitConfig(
+			{
+				feedOptions: (locale) => ({ description: `d-${locale}`, title: `t-${locale}` }),
+				i18n: true,
+				includeContent: false,
+				sources: [
+					source({
+						collection: 'posts',
+						resolveItem: ({ locale, slug }) => ({ description: `${String(locale)}:${slug}` }),
+					}),
+				],
+			},
+			astro,
+		)
+	}
+
+	it('builds the default locale feed from entries in its folder or in none', async () => {
+		const feed = await generateFeed(i18nConfig())
+		const items = feed.items as unknown as Item[]
+		expect(items.map((item) => item.title)).toEqual(['B', 'A'])
+		expect(items.map((item) => item.link)).toEqual([
+			'https://example.com/posts/b/',
+			'https://example.com/posts/a/',
+		])
+		expect(items.map((item) => item.description)).toEqual(['en:b', 'en:a'])
+		expect(feed.options.title).toBe('t-en')
+		expect(feed.options.language).toBe('en')
+		expect(feed.options.link).toBe('https://example.com/')
+	})
+
+	it('builds another locale feed from a localized config, with prefixed links', async () => {
+		const feed = await generateFeed(localizeConfig(i18nConfig(), 'fr'))
+		const items = feed.items as unknown as Item[]
+		expect(items.map((item) => item.title)).toEqual(['C'])
+		expect(items[0]?.link).toBe('https://example.com/fr/posts/c/')
+		expect(items[0]?.description).toBe('fr:c')
+		expect(feed.options.title).toBe('t-fr')
+		expect(feed.options.language).toBe('fr')
+		expect(feed.options.link).toBe('https://example.com/fr/')
+		expect(feed.options.feedLinks?.rss).toBe('https://example.com/fr/rss.xml')
 	})
 })

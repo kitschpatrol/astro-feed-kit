@@ -2,7 +2,13 @@ import type { AstroIntegration } from 'astro'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import type { FeedKitConfig, FormatFilenames } from './integration/config'
-import { defineFeedKitConfig } from './integration/config'
+import {
+	defineFeedKitConfig,
+	feedRoutePattern,
+	FORMAT_KINDS,
+	getFeedPath,
+	localizeConfig,
+} from './integration/config'
 import { configBridgePlugin, configSymbolKey } from './internal/vite-plugin'
 
 export type {
@@ -13,13 +19,16 @@ export type {
 	FormatsInput,
 	ItemResolver,
 	ItemResolverArgs,
+	Localizable,
 	ResolvedFeedKitConfig,
+	ResolvedLocale,
 	Source,
 	SourceInput,
 } from './integration/config'
-export { defineFeedKitConfig, getFeedPath } from './integration/config'
+export { defineFeedKitConfig, getFeedPath, localizeConfig } from './integration/config'
 export { generateFeed } from './integration/feed'
 export { tagCategoryResolver } from './integration/item-map'
+export type { AstroI18nOptions } from './integration/locale'
 export type { FeedEligibleEntry, Item } from './integration/schemas'
 export {
 	AuthorSchema,
@@ -29,20 +38,13 @@ export {
 	FeedEligibleEntrySchema,
 	ItemSchema,
 } from './integration/schemas'
+export { serializeFeed } from './integration/serialize'
 
 const ENDPOINT_FILES: Record<keyof FormatFilenames, string> = {
 	atom: './internal/endpoints/atom.js',
 	json: './internal/endpoints/json.js',
 	rss: './internal/endpoints/rss.js',
 }
-
-// Typed key list drives the endpoint injection loop. Declaring the tuple
-// literal with `satisfies` preserves the narrow `keyof FormatFilenames`
-// element type without asserting through `Object.entries`, which returns
-// `[string, string][]`.
-const ENDPOINT_KINDS = ['atom', 'json', 'rss'] as const satisfies ReadonlyArray<
-	keyof FormatFilenames
->
 
 /**
  * Astro integration that wires three prerendered feed endpoints (RSS, Atom,
@@ -73,6 +75,7 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 				const resolved = defineFeedKitConfig(input, {
 					base: astroConfig.base,
 					buildFormat: astroConfig.build.format,
+					i18n: astroConfig.i18n,
 					site: astroConfig.site,
 					trailingSlash: astroConfig.trailingSlash,
 				})
@@ -102,22 +105,32 @@ export default function feedKit(input: FeedKitConfig): AstroIntegration {
 					},
 				})
 
-				const mountedPaths: string[] = []
-				for (const kind of ENDPOINT_KINDS) {
-					const filename = resolved.formats[kind]
-					if (filename === undefined) {
-						continue
-					}
+				// One set of endpoints per locale with `i18n`, otherwise just one.
+				// The same three entrypoints back every locale; each request
+				// finds its locale from the route pattern it matched.
+				const localeConfigs =
+					resolved.locales === undefined
+						? [resolved]
+						: resolved.locales.map((locale) => localizeConfig(resolved, locale.code))
 
-					const entrypoint = fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url))
-					// Astro serves injected routes under `base` on its own, so the
-					// pattern stays base-relative.
-					injectRoute({
-						entrypoint,
-						pattern: `/${filename}`,
-						prerender: true,
-					})
-					mountedPaths.push(`${resolved.base}${filename}`)
+				const mountedPaths: string[] = []
+				for (const localeConfig of localeConfigs) {
+					for (const kind of FORMAT_KINDS) {
+						const pattern = feedRoutePattern(localeConfig, kind)
+						const mountedPath = getFeedPath(localeConfig, kind)
+						if (pattern === undefined || mountedPath === undefined) {
+							continue
+						}
+
+						// Astro serves injected routes under `base` on its own, so
+						// the pattern stays base-relative.
+						injectRoute({
+							entrypoint: fileURLToPath(new URL(ENDPOINT_FILES[kind], import.meta.url)),
+							pattern,
+							prerender: true,
+						})
+						mountedPaths.push(mountedPath)
+					}
 				}
 
 				if (mountedPaths.length === 0) {

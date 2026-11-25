@@ -1,0 +1,3 @@
+{
+	"extends": "@kitschpatrol/typescript-config/astro"
+}

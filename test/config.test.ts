@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { SourceInput } from '../src/integration/config'
-import { defaultItemSort, defineFeedKitConfig, getFeedPath } from '../src/integration/config'
+import type { AstroI18nOptions } from '../src/integration/locale'
+import {
+	defaultItemSort,
+	defineFeedKitConfig,
+	entrySlug,
+	feedRoutePattern,
+	getFeedPath,
+	localizeConfig,
+} from '../src/integration/config'
 
 const resolveItemFn = (): { link: string } => ({ link: 'https://example.com/posts/x' })
 
@@ -160,6 +168,20 @@ describe('defineFeedKitConfig', () => {
 		expect(resolved.feedOptions.feedLinks?.rss).toBeUndefined()
 	})
 
+	it('keeps a feedOptions.language that is a language tag', () => {
+		const resolved = defineFeedKitConfig({
+			...baseInput,
+			feedOptions: { ...baseInput.feedOptions, language: 'pt-BR' },
+		})
+		expect(resolved.feedOptions.language).toBe('pt-BR')
+	})
+
+	it.each(['en us', 'fr"', ''])('rejects feedOptions.language %j', (language) => {
+		expect(() =>
+			defineFeedKitConfig({ ...baseInput, feedOptions: { ...baseInput.feedOptions, language } }),
+		).toThrow('is not a language tag')
+	})
+
 	it('merges DEFAULT_KNOWN_RENDERERS with user-supplied list, deduped', () => {
 		const resolved = defineFeedKitConfig({
 			...baseInput,
@@ -187,6 +209,13 @@ describe('defineFeedKitConfig: Astro site options', () => {
 			json: 'https://example.com/blog/feed.json',
 			rss: 'https://example.com/blog/rss.xml',
 		})
+	})
+
+	it("records Astro's site for the content container, and omits it when unknown", () => {
+		expect(defineFeedKitConfig(inputWithoutLink, { site: 'https://example.com' }).site).toBe(
+			'https://example.com',
+		)
+		expect('site' in defineFeedKitConfig(baseInput)).toBe(false)
 	})
 
 	it('defaults link to the site root when base is /', () => {
@@ -261,5 +290,171 @@ describe('getFeedPath', () => {
 		const resolved = defineFeedKitConfig({ ...baseInput, formats: { json: false } })
 		expect(getFeedPath(resolved, 'json')).toBeUndefined()
 		expect(getFeedPath(resolved, 'rss')).toBe('/rss.xml')
+	})
+})
+
+describe('defineFeedKitConfig: i18n', () => {
+	const i18n = { defaultLocale: 'en', locales: ['en', 'fr'] }
+	const astro = { i18n, site: 'https://example.com' }
+	const input = { feedOptions: { description: 'd', title: 't' }, i18n: true, sources: ['posts'] }
+
+	it('resolves one locale per Astro locale with its own link, id, feed links, and language', () => {
+		const resolved = defineFeedKitConfig(input, astro)
+		expect(resolved.locales?.map((locale) => locale.code)).toEqual(['en', 'fr'])
+		const [en, fr] = resolved.locales ?? []
+		expect(en?.feedOptions).toMatchObject({
+			feedLinks: {
+				atom: 'https://example.com/atom.xml',
+				json: 'https://example.com/feed.json',
+				rss: 'https://example.com/rss.xml',
+			},
+			id: 'https://example.com/',
+			language: 'en',
+			link: 'https://example.com/',
+		})
+		expect(fr?.feedOptions).toMatchObject({
+			feedLinks: {
+				atom: 'https://example.com/fr/atom.xml',
+				json: 'https://example.com/fr/feed.json',
+				rss: 'https://example.com/fr/rss.xml',
+			},
+			id: 'https://example.com/fr/',
+			language: 'fr',
+			link: 'https://example.com/fr/',
+		})
+	})
+
+	it('describes the default locale at the top level', () => {
+		const resolved = defineFeedKitConfig(input, astro)
+		expect(resolved.locale?.code).toBe('en')
+		expect(resolved.feedOptions).toBe(resolved.locales?.[0]?.feedOptions)
+		expect(resolved.excerptBoundary).toBe(false)
+	})
+
+	it('puts base before the locale prefix', () => {
+		const resolved = defineFeedKitConfig(input, { ...astro, base: '/blog' })
+		expect(resolved.locales?.[1]?.feedOptions.link).toBe('https://example.com/blog/fr/')
+	})
+
+	it('appends the locale prefix to an explicit feedOptions.link', () => {
+		const resolved = defineFeedKitConfig(
+			{ ...input, feedOptions: { ...input.feedOptions, link: 'https://feeds.example.org/x' } },
+			astro,
+		)
+		expect(resolved.locales?.map((locale) => locale.feedOptions.link)).toEqual([
+			'https://feeds.example.org/x/',
+			'https://feeds.example.org/x/fr/',
+		])
+	})
+
+	it('calls feedOptions and excerptBoundary functions once per locale', () => {
+		const seen: string[] = []
+		const resolved = defineFeedKitConfig(
+			{
+				...input,
+				excerptBoundary: (locale) => ({ comment: 'cut', readMore: `more-${locale}` }),
+				feedOptions(locale) {
+					seen.push(locale)
+					return { description: `d-${locale}`, title: `t-${locale}` }
+				},
+			},
+			astro,
+		)
+		expect(seen).toEqual(['en', 'fr'])
+		expect(resolved.feedOptions.title).toBe('t-en')
+		expect(resolved.locales?.[1]?.feedOptions).toMatchObject({ description: 'd-fr', title: 't-fr' })
+		expect(resolved.locales?.[1]?.excerptBoundary).toEqual({ comment: 'cut', readMore: 'more-fr' })
+	})
+
+	it('keeps a language the user set over the locale code', () => {
+		const resolved = defineFeedKitConfig(
+			{
+				...input,
+				feedOptions: (locale) => ({ language: locale === 'fr' ? 'fr-CA' : 'en-US', title: 't' }),
+			},
+			astro,
+		)
+		expect(resolved.locales?.map((locale) => locale.feedOptions.language)).toEqual([
+			'en-US',
+			'fr-CA',
+		])
+	})
+
+	it('derives the language tag from a custom locale with underscores', () => {
+		const resolved = defineFeedKitConfig(input, {
+			...astro,
+			i18n: { defaultLocale: 'en', locales: ['en', { codes: ['pt_BR'], path: 'brasil' }] },
+		})
+		expect(resolved.locales?.[1]).toMatchObject({
+			code: 'pt_BR',
+			path: 'brasil',
+			prefix: 'brasil/',
+		})
+		expect(resolved.locales?.[1]?.feedOptions.language).toBe('pt-BR')
+		expect(resolved.locales?.[1]?.feedOptions.link).toBe('https://example.com/brasil/')
+	})
+
+	it('fails when i18n is enabled without Astro i18n settings', () => {
+		expect(() => defineFeedKitConfig(input, { site: 'https://example.com' })).toThrow(
+			"`i18n: true` needs Astro's `i18n` config",
+		)
+	})
+
+	it.each([
+		['feedOptions', { ...baseInput, feedOptions: () => ({ title: 't' }) }],
+		['excerptBoundary', { ...baseInput, excerptBoundary: () => false as const }],
+	])('fails when %s is a function without i18n', (field, config) => {
+		expect(() => defineFeedKitConfig(config)).toThrow(
+			`${field} is a function, which needs \`i18n: true\``,
+		)
+	})
+})
+
+describe('localizeConfig', () => {
+	const i18n: AstroI18nOptions = {
+		defaultLocale: 'en',
+		locales: ['en', { codes: ['it', 'it-VT'], path: 'italian' }],
+	}
+	const resolved = defineFeedKitConfig(
+		{ feedOptions: { description: 'd', title: 't' }, i18n: true, sources: ['posts'] },
+		{ base: '/blog', i18n, site: 'https://example.com' },
+	)
+
+	it.each(['it', 'it-VT', 'italian'])('switches to the locale named %j', (locale) => {
+		const localized = localizeConfig(resolved, locale)
+		expect(localized.locale?.code).toBe('it')
+		expect(localized.feedOptions.link).toBe('https://example.com/blog/italian/')
+		expect(localized.feedOptions.language).toBe('it')
+		expect(localized.locales).toBe(resolved.locales)
+	})
+
+	it('selects the default locale for undefined', () => {
+		expect(localizeConfig(localizeConfig(resolved, 'it')).locale?.code).toBe('en')
+	})
+
+	it('fails for an unknown locale', () => {
+		expect(() => localizeConfig(resolved, 'de')).toThrow(
+			'unknown locale "de". Configured locales: en, it.',
+		)
+	})
+
+	it('returns a config without i18n unchanged', () => {
+		const plain = defineFeedKitConfig(baseInput)
+		expect(localizeConfig(plain, 'de')).toBe(plain)
+	})
+
+	it('drives getFeedPath and feedRoutePattern', () => {
+		expect(getFeedPath(resolved, 'rss')).toBe('/blog/rss.xml')
+		expect(feedRoutePattern(resolved, 'rss')).toBe('/rss.xml')
+		const italian = localizeConfig(resolved, 'it')
+		expect(getFeedPath(italian, 'rss')).toBe('/blog/italian/rss.xml')
+		expect(feedRoutePattern(italian, 'rss')).toBe('/italian/rss.xml')
+		expect(feedRoutePattern({ ...italian, formats: {} }, 'rss')).toBeUndefined()
+	})
+
+	it('drives entrySlug', () => {
+		expect(entrySlug(resolved, 'italian/ciao')).toBe('ciao')
+		expect(entrySlug(resolved, 'hello')).toBe('hello')
+		expect(entrySlug(defineFeedKitConfig(baseInput), 'italian/ciao')).toBe('italian/ciao')
 	})
 })

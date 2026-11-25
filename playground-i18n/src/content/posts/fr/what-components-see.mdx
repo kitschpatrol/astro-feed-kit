@@ -1,0 +1,12 @@
+---
+title: What components see (fr)
+date: 2026-04-14
+description: The French counterpart. Its component should report the `fr` locale and a `/fr/` path.
+---
+
+import Locale from '../../../components/Locale.astro'
+
+Components inside an entry are rendered with the entry's permalink as the request, so they
+see the locale of the feed being built:
+
+<Locale />

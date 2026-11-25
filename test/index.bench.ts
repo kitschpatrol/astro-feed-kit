@@ -206,7 +206,7 @@ function makeEntry(data: Record<string, unknown>): CollectionEntry<CollectionKey
 }
 
 function makeArgs(data: Record<string, unknown>): ItemResolverArgs {
-	return { entry: makeEntry(data), siteUrl: SITE_URL }
+	return { entry: makeEntry(data), siteUrl: SITE_URL, slug: 'sample' }
 }
 
 const resolverArgsPlain = makeArgs({

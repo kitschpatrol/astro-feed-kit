@@ -1,3 +1,4 @@
+import mdx from '@astrojs/mdx'
 import feedKit from 'astro-feed-kit'
 import { defineConfig } from 'astro/config'
 
@@ -10,6 +11,7 @@ export default defineConfig({
 			formats: { atom: false, rss: 'feed.xml' },
 			sources: ['posts'],
 		}),
+		mdx(),
 	],
 	outDir: './dist/base',
 	site: 'https://example.com',

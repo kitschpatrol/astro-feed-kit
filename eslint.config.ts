@@ -10,7 +10,7 @@ export default eslintConfig({
 		'test/fixtures/mdx/**/*.mdx',
 		// Fixture site posts link to pages the fixture doesn't build, to
 		// exercise relative URL resolution in feed content.
-		'test/fixtures/site/src/content/**/*.md',
+		'test/fixtures/site*/src/content/**/*.{md,mdx}',
 		'**/changelog.md',
 	],
 	type: 'lib',

@@ -1,0 +1,9 @@
+---
+// Reports what Astro exposes to components inside a rendered entry, so the
+// end-to-end tests can check what feed content sees.
+---
+
+<p>
+	Locale: {Astro.currentLocale ?? 'none'}. Path: {Astro.url.pathname}. Site host:{' '}
+	{Astro.site?.host ?? 'none'}.
+</p>

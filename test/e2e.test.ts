@@ -5,9 +5,11 @@
 // rendering of real content entries, the `<FeedKit />` component, and the
 // endpoints sharing one generation pass.
 //
-// The fixture is built twice: once with its default config at the site root,
-// and once with `astro.config.base.ts`, which sets `base: '/blog'`,
+// `test/fixtures/site/` is built twice: once with its default config at the
+// site root, and once with `astro.config.base.ts`, which sets `base: '/blog'`,
 // `trailingSlash: 'never'`, a custom RSS filename, and disables Atom.
+// `test/fixtures/site-i18n/` is built once: an Astro i18n site with English
+// and French content folders and `i18n: true`.
 
 import { parseHTML } from 'linkedom'
 import { execFileSync } from 'node:child_process'
@@ -17,7 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url))
-const FIXTURE_ROOT = fileURLToPath(new URL('fixtures/site/', import.meta.url))
+const FIXTURES_ROOT = fileURLToPath(new URL('fixtures/', import.meta.url))
 
 type JsonFeed = {
 	// eslint-disable-next-line ts/naming-convention -- JSON Feed field names are snake_case
@@ -31,9 +33,22 @@ type JsonFeed = {
 		title: string
 		url: string
 	}>
+	language?: string
+	version: string
 }
 
-type Variant = 'base' | 'root'
+type Variant = 'base' | 'i18n' | 'root'
+
+/** Which fixture directory each variant builds, and with which config file. */
+const VARIANTS: Record<Variant, { config?: string; fixture: string }> = {
+	base: { config: 'astro.config.base.ts', fixture: 'site' },
+	i18n: { fixture: 'site-i18n' },
+	root: { fixture: 'site' },
+}
+
+function fixtureDirectory(variant: Variant): string {
+	return path.join(FIXTURES_ROOT, VARIANTS[variant].fixture)
+}
 
 /** Absolute path to a package's CLI script, read from its `bin` field. */
 async function binPath(packageName: string): Promise<string> {
@@ -83,24 +98,24 @@ function runNodeScript(script: string, args: string[], cwd: string): void {
 }
 
 async function readOutput(variant: Variant, file: string): Promise<string> {
-	return readFile(path.join(FIXTURE_ROOT, 'dist', variant, file), 'utf8')
+	return readFile(path.join(fixtureDirectory(variant), 'dist', variant, file), 'utf8')
 }
 
 async function outputExists(variant: Variant, file: string): Promise<boolean> {
 	try {
-		await access(path.join(FIXTURE_ROOT, 'dist', variant, file))
+		await access(path.join(fixtureDirectory(variant), 'dist', variant, file))
 		return true
 	} catch {
 		return false
 	}
 }
 
-async function readJsonFeed(variant: Variant): Promise<JsonFeed> {
-	return JSON.parse(await readOutput(variant, 'feed.json')) as JsonFeed
+async function readJsonFeed(variant: Variant, file = 'feed.json'): Promise<JsonFeed> {
+	return JSON.parse(await readOutput(variant, file)) as JsonFeed
 }
 
-async function alternateLinks(variant: Variant) {
-	const { document } = parseHTML(await readOutput(variant, 'index.html'))
+async function alternateLinks(variant: Variant, page = 'index.html') {
+	const { document } = parseHTML(await readOutput(variant, page))
 	return Array.from(document.querySelectorAll('link[rel="alternate"]'), (link) => ({
 		href: link.getAttribute('href'),
 		title: link.getAttribute('title'),
@@ -118,13 +133,21 @@ function itemContent(feed: JsonFeed, title: string): string {
 }
 
 beforeAll(async () => {
-	// The fixture imports `astro-feed-kit` by name, which resolves to `dist/`.
+	// The fixtures import `astro-feed-kit` by name, which resolves to `dist/`.
 	runNodeScript(await binPath('tsdown'), [], REPO_ROOT)
-	await rm(path.join(FIXTURE_ROOT, 'dist'), { force: true, recursive: true })
 	const astro = await binPath('astro')
-	runNodeScript(astro, ['build'], FIXTURE_ROOT)
-	runNodeScript(astro, ['build', '--config', 'astro.config.base.ts'], FIXTURE_ROOT)
-}, 300_000)
+	const variants = Object.keys(VARIANTS) as Variant[]
+	const directories = new Set(variants.map((variant) => fixtureDirectory(variant)))
+	for (const directory of directories) {
+		await rm(path.join(directory, 'dist'), { force: true, recursive: true })
+	}
+
+	for (const variant of variants) {
+		const { config } = VARIANTS[variant]
+		const args = config === undefined ? ['build'] : ['build', '--config', config]
+		runNodeScript(astro, args, fixtureDirectory(variant))
+	}
+}, 400_000)
 
 describe('e2e: fixture site at the root', () => {
 	it('writes all three feed formats', async () => {
@@ -143,7 +166,14 @@ describe('e2e: fixture site at the root', () => {
 
 	it('leaves out drafts and lists the newest post first', async () => {
 		const feed = await readJsonFeed('root')
-		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post', 'Full post'])
+		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post', 'Full post', 'MDX post'])
+	})
+
+	it('gives components inside entries their permalink and the site, with no locale', async () => {
+		const content = itemContent(await readJsonFeed('root'), 'MDX post')
+		expect(content).toContain('Locale: none.')
+		expect(content).toContain('Path: /posts/mdx-post/.')
+		expect(content).toContain('Site host: example.com.')
 	})
 
 	it('renders the full body of entries without an excerpt marker', async () => {
@@ -212,9 +242,100 @@ describe('e2e: fixture site with base, trailingSlash never, and custom formats',
 		expect(feed.items.map((item) => item.url)).toEqual([
 			'https://example.com/blog/posts/teaser',
 			'https://example.com/blog/posts/full',
+			'https://example.com/blog/posts/mdx-post',
 		])
 		expect(itemContent(feed, 'Teaser post')).toContain(
 			'<a href="https://example.com/blog/posts/teaser">Continue reading →</a>',
 		)
+	})
+
+	it('gives components inside entries a permalink under base', async () => {
+		expect(itemContent(await readJsonFeed('base'), 'MDX post')).toContain(
+			'Path: /blog/posts/mdx-post.',
+		)
+	})
+})
+
+describe('e2e: fixture site with i18n', () => {
+	it('writes every format for each locale, the default locale unprefixed', async () => {
+		for (const file of [
+			'rss.xml',
+			'atom.xml',
+			'feed.json',
+			'fr/rss.xml',
+			'fr/atom.xml',
+			'fr/feed.json',
+		]) {
+			await expect(outputExists('i18n', file)).resolves.toBe(true)
+		}
+	})
+
+	it('links each page to the feeds of its own locale, with localized titles', async () => {
+		await expect(alternateLinks('i18n')).resolves.toEqual([
+			{ href: '/rss.xml', title: 'Fixture', type: 'application/rss+xml' },
+			{ href: '/atom.xml', title: 'Fixture', type: 'application/atom+xml' },
+			{ href: '/feed.json', title: 'Fixture', type: 'application/feed+json' },
+		])
+		await expect(alternateLinks('i18n', 'fr/index.html')).resolves.toEqual([
+			{ href: '/fr/rss.xml', title: 'Fixture (fr)', type: 'application/rss+xml' },
+			{ href: '/fr/atom.xml', title: 'Fixture (fr)', type: 'application/atom+xml' },
+			{ href: '/fr/feed.json', title: 'Fixture (fr)', type: 'application/feed+json' },
+		])
+	})
+
+	it('fills the default locale feed from its folder and from the collection root', async () => {
+		const feed = await readJsonFeed('i18n')
+		expect(feed.items.map((item) => item.title)).toEqual([
+			'Teaser post',
+			'MDX post',
+			'Full post',
+			'Root post',
+		])
+		expect(feed.items.map((item) => item.url)).toEqual([
+			'https://example.com/posts/teaser/',
+			'https://example.com/posts/mdx-post/',
+			'https://example.com/posts/full/',
+			'https://example.com/posts/root/',
+		])
+		expect(feed.home_page_url).toBe('https://example.com/')
+		expect(feed.feed_url).toBe('https://example.com/feed.json')
+		expect(feed.language).toBe('en')
+		expect(feed.version).toBe('https://jsonfeed.org/version/1.1')
+	})
+
+	it('fills the other locale feed from its folder only, under its prefix', async () => {
+		const feed = await readJsonFeed('i18n', 'fr/feed.json')
+		expect(feed.items.map((item) => item.title)).toEqual(['Teaser post (fr)', 'MDX post (fr)'])
+		expect(feed.items[0]?.url).toBe('https://example.com/fr/posts/teaser/')
+		expect(feed.home_page_url).toBe('https://example.com/fr/')
+		expect(feed.feed_url).toBe('https://example.com/fr/feed.json')
+		expect(feed.language).toBe('fr')
+	})
+
+	it('localizes the read-more link and resolves relative URLs under the locale', async () => {
+		const content = itemContent(await readJsonFeed('i18n', 'fr/feed.json'), 'Teaser post (fr)')
+		expect(content).toContain('<a href="https://example.com/fr/posts/about/">relative link</a>')
+		expect(content).not.toContain('below the excerpt marker')
+		expect(content).toContain('<a href="https://example.com/fr/posts/teaser/">Lire la suite</a>')
+		const english = itemContent(await readJsonFeed('i18n'), 'Teaser post')
+		expect(english).toContain('<a href="https://example.com/posts/teaser/">Continue reading →</a>')
+	})
+
+	it('gives components inside entries the locale of the feed being built', async () => {
+		const french = itemContent(await readJsonFeed('i18n', 'fr/feed.json'), 'MDX post (fr)')
+		expect(french).toContain('Locale: fr.')
+		expect(french).toContain('Path: /fr/posts/mdx-post/.')
+		expect(french).toContain('Site host: example.com.')
+		const english = itemContent(await readJsonFeed('i18n'), 'MDX post')
+		expect(english).toContain('Locale: en.')
+		expect(english).toContain('Path: /posts/mdx-post/.')
+	})
+
+	it('writes the language into RSS and Atom with per-locale self links', async () => {
+		await expect(readOutput('i18n', 'rss.xml')).resolves.toContain('<language>en</language>')
+		const atom = await readOutput('i18n', 'fr/atom.xml')
+		expect(atom).toContain('<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="fr">')
+		expect(atom).toContain('<link rel="self" href="https://example.com/fr/atom.xml"/>')
+		expect(atom).toContain('<link rel="alternate" href="https://example.com/fr/"/>')
 	})
 })
