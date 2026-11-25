@@ -76,6 +76,7 @@
 		"defuddle": "^0.19.6",
 		"hast-util-sanitize": "5.0.2",
 		"linkedom": "^0.18.15",
+		"modern-web-guidance": "^1.0.1",
 		"node-addon-api": "^8.9.2",
 		"node-gyp": "^13.1.0",
 		"shx": "^0.4.0",
@@ -87,7 +88,7 @@
 	"peerDependencies": {
 		"astro": "^7.3.6"
 	},
-	"packageManager": "pnpm@12.18.0",
+	"packageManager": "pnpm@12.23.0",
 	"engines": {
 		"node": "^24.16.0 || >=26.3.0"
 	}

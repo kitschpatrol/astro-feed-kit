@@ -23,6 +23,8 @@ peerDependencyRules:
 permissions:
   '@kitschpatrol/shared-config':
     skills: true
+  modern-web-guidance:
+    skills: true
   tsdown:
     skills: true
 publicHoistPattern:
